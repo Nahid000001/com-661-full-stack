@@ -1,0 +1,82 @@
+<!-- src/app/components/review-list/review-list.component.html -->
+<div class="reviews-list">
+    <div *ngIf="reviews.length === 0" class="no-reviews">
+      <p>No reviews yet. Be the first to review!</p>
+    </div>
+    
+    <div *ngIf="error" class="alert alert-danger">
+      {{ error }}
+    </div>
+    
+    <div *ngFor="let review of reviews" class="review-card">
+      <div class="review-header">
+        <div class="rating">
+          <span class="stars">
+            <span *ngFor="let _ of [].constructor(review.rating)">★</span>
+            <span *ngFor="let _ of [].constructor(5 - review.rating)">☆</span>
+          </span>
+          <span class="rating-value">{{ review.rating }}/5</span>
+        </div>
+        <div class="reviewer">{{ review.username }}</div>
+        <div class="review-date">{{ review.created_at | date }}</div>
+      </div>
+      
+      <div *ngIf="editingReview !== review._id" class="review-content">
+        <p>{{ review.comment }}</p>
+      </div>
+      
+      <!-- Edit Form -->
+      <div *ngIf="editingReview === review._id" class="edit-form">
+        <form [formGroup]="editForm" (ngSubmit)="submitEdit(review._id)">
+          <div class="form-group">
+            <label for="rating">Rating (1-5)</label>
+            <input type="number" formControlName="rating" class="form-control" min="1" max="5" />
+          </div>
+          <div class="form-group">
+            <label for="comment">Comment</label>
+            <textarea formControlName="comment" class="form-control" rows="3"></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-sm btn-primary">Save</button>
+            <button type="button" class="btn btn-sm btn-secondary" (click)="cancelEdit()">Cancel</button>
+          </div>
+        </form>
+      </div>
+      
+      <!-- Review Actions -->
+      <div *ngIf="editingReview !== review._id" class="review-actions">
+        <button *ngIf="canEditReview(review)" class="btn btn-sm btn-outline-primary" (click)="startEdit(review)">
+          Edit
+        </button>
+        <button *ngIf="canDeleteReview(review)" class="btn btn-sm btn-outline-danger" (click)="deleteReview(review._id)">
+          Delete
+        </button>
+        <button *ngIf="canReplyToReview() && !review.reply" class="btn btn-sm btn-outline-secondary" (click)="startReply(review._id)">
+          Reply
+        </button>
+      </div>
+      
+      <!-- Reply Form -->
+      <div *ngIf="replyingTo === review._id" class="reply-form">
+        <form [formGroup]="replyForm" (ngSubmit)="submitReply(review._id)">
+          <div class="form-group">
+            <label for="reply">Your Reply</label>
+            <textarea formControlName="reply" class="form-control" rows="2"></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-sm btn-primary">Submit Reply</button>
+            <button type="button" class="btn btn-sm btn-secondary" (click)="cancelReply()">Cancel</button>
+          </div>
+        </form>
+      </div>
+      
+      <!-- Owner/Admin Reply -->
+      <div *ngIf="review.reply" class="owner-reply">
+        <div class="reply-header">
+          <strong>Owner Reply:</strong>
+          <small>{{ review.reply_date | date }}</small>
+        </div>
+        <p>{{ review.reply }}</p>
+      </div>
+    </div>
+  </div>

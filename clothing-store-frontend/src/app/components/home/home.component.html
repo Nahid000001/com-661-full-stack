@@ -1,0 +1,50 @@
+<!-- src/app/components/home/home.component.html -->
+<div class="home-container">
+    <section class="hero">
+      <div class="hero-content">
+        <h1>Welcome to QA Clothing Store</h1>
+        <p>Discover the best clothing stores and share your experiences</p>
+        <a routerLink="/stores" class="btn btn-primary btn-lg">Browse Stores</a>
+      </div>
+    </section>
+  
+    <section class="featured-stores">
+      <h2>Featured Stores</h2>
+      
+      <div *ngIf="loading" class="text-center">
+        <p>Loading featured stores...</p>
+      </div>
+      
+      <div *ngIf="error" class="alert alert-danger">
+        {{ error }}
+      </div>
+      
+      <div *ngIf="!loading && !error" class="store-grid">
+        <div *ngFor="let store of featuredStores" class="store-card">
+          <h3>{{ store.company_name }}</h3>
+          <p class="store-type">{{ store.title }}</p>
+          <p class="store-location">{{ store.location }}</p>
+          <a [routerLink]="['/stores', store._id]" class="btn btn-outline-primary">View Details</a>
+        </div>
+      </div>
+    </section>
+  
+    <section class="about-us">
+      <h2>About Our Platform</h2>
+      <p>QA Clothing Store is a platform that connects customers with clothing stores. Browse stores, read reviews, and share your experiences with the community.</p>
+      <div class="features">
+        <div class="feature">
+          <h3>Find Stores</h3>
+          <p>Discover clothing stores in your area.</p>
+        </div>
+        <div class="feature">
+          <h3>Read Reviews</h3>
+          <p>Make informed decisions based on other customers' experiences.</p>
+        </div>
+        <div class="feature">
+          <h3>Share Feedback</h3>
+          <p>Help others by sharing your honest reviews.</p>
+        </div>
+      </div>
+    </section>
+  </div>

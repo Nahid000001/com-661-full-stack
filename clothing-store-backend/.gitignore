@@ -1,0 +1,26 @@
+# 💻 Python-related
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+
+# 🔒 Virtual environment
+venv/
+
+# 🛠 IDE & Editor folders
+.vscode/
+.idea/
+
+# 📄 OS files
+.DS_Store
+Thumbs.db
+
+# 🌐 Environment variables
+.env
+.env.*
+
+# 🧪 Test coverage
+htmlcov/
+.coverage
+.tox/

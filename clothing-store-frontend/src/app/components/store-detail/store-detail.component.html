@@ -1,0 +1,48 @@
+<!-- src/app/components/store-detail/store-detail.component.html -->
+<div class="store-detail">
+    <div *ngIf="loading" class="text-center">
+      <p>Loading store details...</p>
+    </div>
+    
+    <div *ngIf="error" class="alert alert-danger">
+      {{ error }}
+    </div>
+    
+    <div *ngIf="store && !loading">
+      <div class="store-header">
+        <h2>{{ store.company_name }}</h2>
+        <div class="store-badges">
+          <span class="badge bg-info">{{ store.work_type }}</span>
+          <span class="badge bg-secondary">{{ store.location }}</span>
+        </div>
+      </div>
+      
+      <div class="store-info">
+        <p class="store-title">{{ store.title }}</p>
+        <p class="store-description">{{ store.description }}</p>
+        <p><small>Views: {{ store.views }}</small></p>
+        
+        <div *ngIf="isAdmin || isOwner" class="admin-actions">
+          <button class="btn btn-primary">Edit Store</button>
+          <button class="btn btn-danger">Delete Store</button>
+        </div>
+      </div>
+      
+      <div class="reviews-section">
+        <h3>Customer Reviews</h3>
+        
+        <app-review-form 
+          *ngIf="isLoggedIn" 
+          [storeId]="storeId" 
+          (reviewAdded)="onReviewAdded($event)">
+        </app-review-form>
+        
+        <app-review-list 
+          [reviews]="reviews" 
+          [storeId]="storeId"
+          [isAdmin]="isAdmin"
+          [isOwner]="isOwner">
+        </app-review-list>
+      </div>
+    </div>
+  </div>

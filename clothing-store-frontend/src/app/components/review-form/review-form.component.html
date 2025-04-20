@@ -1,0 +1,45 @@
+<!-- src/app/components/review-form/review-form.component.html -->
+<div class="review-form-container">
+    <h4>Leave a Review</h4>
+    
+    <form [formGroup]="reviewForm" (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label for="rating">Rating (1-5)</label>
+        <input 
+          type="number" 
+          formControlName="rating" 
+          class="form-control" 
+          min="1" 
+          max="5" 
+          [ngClass]="{ 'is-invalid': submitted && f['rating'].errors }" 
+        />
+        <div *ngIf="submitted && f['rating'].errors" class="invalid-feedback">
+          <div *ngIf="f['rating'].errors['required']">Rating is required</div>
+          <div *ngIf="f['rating'].errors['min'] || f['rating'].errors['max']">Rating must be between 1 and 5</div>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="comment">Comment</label>
+        <textarea 
+          formControlName="comment" 
+          class="form-control" 
+          rows="3" 
+          [ngClass]="{ 'is-invalid': submitted && f['comment'].errors }"
+        ></textarea>
+        <div *ngIf="submitted && f['comment'].errors" class="invalid-feedback">
+          <div *ngIf="f['comment'].errors['required']">Comment is required</div>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <button type="submit" [disabled]="loading" class="btn btn-primary">
+          <span *ngIf="loading" class="spinner-border spinner-border-sm mr-1"></span>
+          Submit Review
+        </button>
+      </div>
+      
+      <div *ngIf="error" class="alert alert-danger mt-3">{{error}}</div>
+      <div *ngIf="success" class="alert alert-success mt-3">{{success}}</div>
+    </form>
+  </div>
