@@ -53,9 +53,18 @@ class User:
     @staticmethod
     def create_user(email, password, first_name='', last_name='', username='', role='customer'):
         """Create a new user"""
+        # If username is not provided, generate one from email
+        if not username and email:
+            username = email.split('@')[0]
+            
+        # Ensure we have either email or username
+        if not email and not username:
+            return None
+            
+        # Create the user document
         user = {
             "email": email,
-            "username": username or email.split('@')[0],
+            "username": username,
             "password": generate_password_hash(password),
             "first_name": first_name,
             "last_name": last_name,
@@ -63,8 +72,13 @@ class User:
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
         }
-        result = mongo.db.users.insert_one(user)
-        return str(result.inserted_id)
+        
+        try:
+            result = mongo.db.users.insert_one(user)
+            return str(result.inserted_id)
+        except Exception as e:
+            print(f"Error creating user: {e}")
+            return None
     
     @staticmethod
     def get_user_by_email(email):

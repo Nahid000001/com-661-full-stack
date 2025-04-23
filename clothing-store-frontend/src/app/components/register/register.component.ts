@@ -27,6 +27,7 @@ export class RegisterComponent implements OnInit {
 
   ngOnInit() {
     this.registerForm = this.formBuilder.group({
+      email: ['', [Validators.required, Validators.email]],
       username: ['', Validators.required],
       password: ['', [Validators.required, Validators.minLength(6)]],
       role: ['customer']
@@ -44,15 +45,18 @@ export class RegisterComponent implements OnInit {
 
     this.loading = true;
     this.authService.register(
+      this.f['email'].value,
       this.f['username'].value, 
       this.f['password'].value,
       this.f['role'].value
     ).subscribe({
-      next: () => {
+      next: (response) => {
+        console.log('Registration successful:', response);
         this.router.navigate(['/login'], { queryParams: { registered: true }});
       },
       error: error => {
-        this.error = error.error.message || 'Registration failed';
+        console.error('Registration error:', error);
+        this.error = error.error?.msg || error.statusText || 'Registration failed';
         this.loading = false;
       }
     });

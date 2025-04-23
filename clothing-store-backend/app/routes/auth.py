@@ -40,23 +40,35 @@ def register():
     """Register a new user"""
     data = request.get_json()
     
+    # Handle case where email might be missing
+    email = data.get('email')
+    username = data.get('username')
+    
+    if not email and not username:
+        return jsonify({"msg": "Either email or username is required"}), 400
+    
+    # If email is missing but username is provided, use username as email
+    if not email:
+        email = f"{username}@example.com"  # Default email domain
+    
     # Check if user already exists with the same email
-    existing_user = User.get_user_by_email(data.get('email'))
+    existing_user = User.get_user_by_email(email)
     if existing_user:
         return jsonify({"msg": "User with this email already exists"}), 409
     
     # Check if username already exists
-    existing_username = User.get_user_by_username(data.get('username'))
+    existing_username = User.get_user_by_username(username)
     if existing_username:
         return jsonify({"msg": "Username already taken"}), 409
     
     # Create new user
     user_id = User.create_user(
-        email=data.get('email'),
+        email=email,
         password=data.get('password'),
-        first_name=data.get('first_name'),
-        last_name=data.get('last_name'),
-        username=data.get('username')
+        first_name=data.get('first_name', ''),
+        last_name=data.get('last_name', ''),
+        username=username,
+        role=data.get('role', 'customer')
     )
     
     return jsonify({"msg": "User created successfully", "user_id": user_id}), 201
@@ -66,8 +78,18 @@ def register():
 def login():
     """Login a user and return tokens"""
     data = request.get_json()
+    
+    if not data:
+        return jsonify({"msg": "Missing JSON in request"}), 400
+    
     emailOrUsername = data.get('emailOrUsername')
     password = data.get('password')
+    
+    if not emailOrUsername:
+        return jsonify({"msg": "Missing emailOrUsername parameter"}), 400
+    
+    if not password:
+        return jsonify({"msg": "Missing password parameter"}), 400
     
     # Try to find user by email first
     user = User.get_user_by_email(emailOrUsername)
@@ -77,15 +99,18 @@ def login():
         user = User.get_user_by_username(emailOrUsername)
     
     # If user not found or password incorrect
-    if not user or not User.check_password(user, password):
-        return jsonify({"msg": "Invalid credentials"}), 401
+    if not user:
+        return jsonify({"msg": "User not found"}), 404
+        
+    if not User.check_password(user, password):
+        return jsonify({"msg": "Invalid password"}), 401
     
     # Create tokens
     access_token = create_access_token(
         identity=str(user['_id']),
         fresh=True,
         additional_claims={
-            "email": user['email'],
+            "email": user.get('email', ''),
             "username": user['username']
         }
     )
@@ -101,9 +126,9 @@ def login():
         "refresh_token": refresh_token,
         "user": {
             "id": str(user['_id']),
-            "email": user['email'],
-            "first_name": user['first_name'],
-            "last_name": user['last_name'],
+            "email": user.get('email', ''),
+            "first_name": user.get('first_name', ''),
+            "last_name": user.get('last_name', ''),
             "username": user['username']
         }
     }), 200

@@ -46,11 +46,13 @@ export class LoginComponent implements OnInit {
     this.loading = true;
     this.authService.login(this.f['username'].value, this.f['password'].value)
       .subscribe({
-        next: () => {
+        next: (response) => {
+          console.log('Login successful:', response);
           this.router.navigate(['/']);
         },
         error: error => {
-          this.error = error.error.message || 'Login failed';
+          console.error('Login error:', error);
+          this.error = error.error?.msg || error.statusText || 'Login failed';
           this.loading = false;
         }
       });

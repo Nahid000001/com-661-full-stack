@@ -93,7 +93,7 @@ export class AuthService {
   }
 
   login(username: string, password: string) {
-    return this.http.post<any>(`${environment.apiUrl}/login`, { username, password })
+    return this.http.post<any>(`${environment.apiUrl}/login`, { emailOrUsername: username, password })
       .pipe(map(response => {
         if (response && response.access_token) {
           // Store user details and jwt token in local storage
@@ -106,8 +106,8 @@ export class AuthService {
       }));
   }
 
-  register(username: string, password: string, role: string = 'customer') {
-    return this.http.post<any>(`${environment.apiUrl}/register`, { username, password, role });
+  register(email: string, username: string, password: string, role: string = 'customer') {
+    return this.http.post<any>(`${environment.apiUrl}/register`, { email, username, password, role });
   }
 
   // Initiate Google OAuth login/register flow
