@@ -61,11 +61,12 @@
             <line x1="12" y1="16" x2="12" y2="16"></line>
           </svg>
           <p>{{ error }}</p>
-          <button class="btn btn-sm btn-secondary" (click)="retryLoading()">Try Again</button>
+          <button class="btn btn-sm btn-secondary" (click)="retryLoading()">TRY AGAIN</button>
         </div>
       </div>
       
       <div *ngIf="!loading && !error" class="store-grid">
+        <!-- Always use the store data regardless of length -->
         <div *ngFor="let store of featuredStores" class="store-card">
           <div class="store-card-image" [style.background-image]="'url(' + getStoreImage(store) + ')'">
             <div class="store-rating-badge" *ngIf="store.average_rating || getRandomRating()">
@@ -76,7 +77,7 @@
             </div>
           </div>
           <div class="card-body">
-            <div class="store-badge">{{ store.work_type || 'RETAIL' }}</div>
+            <div class="store-badge" [ngClass]="getTypeBadgeClass(store.work_type)">{{ store.work_type || 'RETAIL' }}</div>
             <h3 class="store-name">{{ store.company_name }}</h3>
             <p class="store-description">{{ truncateText(store.description || 'Quality clothing store offering a great selection of products and excellent customer service.', 120) }}</p>
             
@@ -103,7 +104,8 @@
         </div>
       </div>
       
-      <div *ngIf="!loading && !error && featuredStores.length === 0" class="empty-state">
+      <!-- This empty state should never show now -->
+      <div *ngIf="!loading && !error && featuredStores.length === 0" class="empty-state" style="display: none;">
         <div class="empty-state-content">
           <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"></circle>

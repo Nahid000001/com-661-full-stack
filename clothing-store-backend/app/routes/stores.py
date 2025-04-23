@@ -58,8 +58,9 @@ def get_stores():
     try:
         page = int(request.args.get('page', 1))
         limit = int(request.args.get('limit', 10))
+        sort = request.args.get('sort', '')
         
-        result = store.get_all_stores(page, limit)
+        result = store.get_all_stores(page, limit, sort)
         return jsonify(result), 200
         
     except ValueError:

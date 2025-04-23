@@ -41,15 +41,15 @@ export class AuthService {
     return decodedToken?.role || 'customer';
   }
 
-  // Check if token is expired
-  isTokenExpired(token: string): boolean {
-    const decoded = this.decodeToken(token);
-    if (!decoded || !decoded.exp) {
-      return true;
+  // Get user ID from token
+  getUserId(): string | null {
+    const user = this.currentUserValue;
+    if (!user || !user.token) {
+      return null;
     }
-    const expirationDate = new Date(0);
-    expirationDate.setUTCSeconds(decoded.exp);
-    return expirationDate.valueOf() <= new Date().valueOf();
+    
+    const decodedToken = this.decodeToken(user.token);
+    return decodedToken?.sub || null;
   }
 
   constructor(private http: HttpClient, private router: Router) {
@@ -65,25 +65,23 @@ export class AuthService {
     this.currentUserSubject.next(user);
   }
 
-  // Set up automatic token refresh
+  // Setup token refresh 
   private setupAutoRefresh() {
-    // Check if token needs refresh every minute
+    // Check every minute if token is about to expire
     setInterval(() => {
       const user = this.currentUserValue;
-      if (user && user.token) {
-        const decoded = this.decodeToken(user.token);
-        
-        // If token expires in the next 5 minutes, refresh it
-        if (decoded && decoded.exp) {
-          const expirationDate = new Date(0);
-          expirationDate.setUTCSeconds(decoded.exp);
-          const now = new Date();
-          const fiveMinutes = 5 * 60 * 1000;
-          
-          if (expirationDate.valueOf() - now.valueOf() < fiveMinutes) {
-            this.refreshToken().subscribe();
-          }
-        }
+      if (!user || !user.token) return;
+      
+      const tokenPayload = this.decodeToken(user.token);
+      if (!tokenPayload) return;
+      
+      // If token expires in less than 10 minutes, refresh it
+      const expiryTime = tokenPayload.exp * 1000; // convert to milliseconds
+      const currentTime = Date.now();
+      const timeUntilExpiry = expiryTime - currentTime;
+      
+      if (timeUntilExpiry < 600000 && timeUntilExpiry > 0) { // less than 10 minutes
+        this.refreshToken().subscribe();
       }
     }, 60000); // Check every minute
   }
@@ -98,7 +96,16 @@ export class AuthService {
         if (response && response.access_token) {
           // Store user details and jwt token in local storage
           const token = response.access_token;
-          const user = { username, token, refreshToken: response.refresh_token };
+          const decodedToken = this.decodeToken(token);
+          const userId = decodedToken?.sub || null;
+          
+          const user = { 
+            username, 
+            token, 
+            refreshToken: response.refresh_token,
+            userId: userId
+          };
+          
           localStorage.setItem('currentUser', JSON.stringify(user));
           this.currentUserSubject.next(user);
         }
@@ -130,11 +137,16 @@ export class AuthService {
           if (response && response.access_token) {
             // Store user details and jwt token in local storage
             const token = response.access_token;
+            const decodedToken = this.decodeToken(token);
+            const userId = decodedToken?.sub || null;
+            
             const user = { 
               username: response.username, 
               token, 
-              refreshToken: response.refresh_token 
+              refreshToken: response.refresh_token,
+              userId: userId 
             };
+            
             localStorage.setItem('currentUser', JSON.stringify(user));
             this.currentUserSubject.next(user);
           }
@@ -147,33 +159,76 @@ export class AuthService {
       );
   }
 
-  logout() {
-    // Call logout endpoint with token information
-    const currentUser = this.currentUserValue;
-    if (currentUser?.refreshToken) {
-      const jti = this.decodeToken(currentUser.refreshToken)?.jti;
-      if (jti) {
-        const headers = new HttpHeaders({
-          'X-Refresh-Token-JTI': jti
-        });
+  // Refresh token
+  refreshToken() {
+    // Prevent multiple refreshes
+    if (this.refreshTokenInProgress) {
+      return this.refreshTokenSubject.pipe(
+        filter(result => result !== null),
+        take(1),
+        switchMap(() => this.refreshTokenInternal())
+      );
+    } else {
+      this.refreshTokenInProgress = true;
+      this.refreshTokenSubject.next(null);
+      
+      return this.refreshTokenInternal();
+    }
+  }
+  
+  private refreshTokenInternal() {
+    const user = this.currentUserValue;
+    if (!user || !user.refreshToken) {
+      return throwError(() => new Error('No refresh token available'));
+    }
+    
+    return this.http.post<any>(`${environment.apiUrl}/refresh-token`, {
+      refresh_token: user.refreshToken
+    }).pipe(
+      map(response => {
+        if (response && response.access_token) {
+          // Update stored token
+          const updatedUser = {
+            ...user,
+            token: response.access_token
+          };
+          
+          if (response.refresh_token) {
+            updatedUser.refreshToken = response.refresh_token;
+          }
+          
+          localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+          this.currentUserSubject.next(updatedUser);
+        }
         
-        return this.http.delete(`${environment.apiUrl}/logout`, { headers }).pipe(
-          tap(() => {
-            this.clearUserData();
-          }),
-          catchError(error => {
-            console.error('Logout error', error);
-            this.clearUserData();
-            return of(null);
-          })
-        );
-      } else {
-        this.clearUserData();
-        return of(null);
-      }
+        this.refreshTokenInProgress = false;
+        this.refreshTokenSubject.next(response);
+        
+        return response;
+      }),
+      catchError(error => {
+        this.refreshTokenInProgress = false;
+        
+        // If refresh fails, log out user
+        if (error.status === 401) {
+          this.logout();
+        }
+        
+        return throwError(() => error);
+      })
+    );
+  }
+
+  logout() {
+    // Revoke token on the server (best practice)
+    const user = this.currentUserValue;
+    if (user && user.token) {
+      this.http.post(`${environment.apiUrl}/logout`, {}).subscribe({
+        next: () => this.clearUserData(),
+        error: () => this.clearUserData()
+      });
     } else {
       this.clearUserData();
-      return of(null);
     }
   }
 
@@ -192,64 +247,21 @@ export class AuthService {
     // Check if token is expired
     return !this.isTokenExpired(currentUser.token);
   }
-  
-  refreshToken(): Observable<any> {
-    // If refresh already in progress, wait for it
-    if (this.refreshTokenInProgress) {
-      return this.refreshTokenSubject.pipe(
-        filter((result: any) => result !== null),
-        take(1),
-        switchMap(() => this.refreshToken())
-      );
-    }
 
-    this.refreshTokenInProgress = true;
-    this.refreshTokenSubject.next(null);
+  isTokenExpired(token: string): boolean {
+    if (!token) return true;
     
+    const payload = this.decodeToken(token);
+    if (!payload || !payload.exp) return true;
+    
+    const expiryTime = payload.exp * 1000; // convert to milliseconds
+    return Date.now() > expiryTime;
+  }
+
+  // For auth interceptor to add token to requests
+  getAuthorizationToken(): string {
     const currentUser = this.currentUserValue;
-    if (!currentUser || !currentUser.refreshToken) {
-      // If no refresh token is available, log the user out
-      this.logout();
-      return throwError(() => new Error('No refresh token available'));
-    }
-    
-    return this.http.post<any>(`${environment.apiUrl}/refresh`, {}, {
-      headers: {
-        'Authorization': `Bearer ${currentUser.refreshToken}`
-      }
-    }).pipe(
-      map(response => {
-        if (response && response.access_token) {
-          // Update stored user details with new tokens
-          const updatedUser = {
-            ...currentUser,
-            token: response.access_token,
-            refreshToken: response.refresh_token || currentUser.refreshToken
-          };
-          localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-          this.currentUserSubject.next(updatedUser);
-          
-          this.refreshTokenInProgress = false;
-          this.refreshTokenSubject.next(response);
-          
-          return {
-            accessToken: response.access_token,
-            refreshToken: response.refresh_token
-          };
-        }
-        return response;
-      }),
-      catchError((error: HttpErrorResponse) => {
-        this.refreshTokenInProgress = false;
-        
-        // If refresh token is invalid, log out the user
-        if (error.status === 401) {
-          this.logout();
-        }
-        
-        return throwError(() => error);
-      })
-    );
+    return currentUser && currentUser.token ? currentUser.token : '';
   }
 
   // Check if the current user has a specific role

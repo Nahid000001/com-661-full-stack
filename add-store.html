@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Store to Clothing Store Database</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #1a237e;
+            text-align: center;
+        }
+        .form-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 100px;
+        }
+        button {
+            background-color: #1a237e;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #534bae;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e8f5e9;
+            border-radius: 4px;
+            display: none;
+        }
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+    </style>
+</head>
+<body>
+    <h1>Add Store to Database</h1>
+    
+    <div class="form-container">
+        <form id="addStoreForm">
+            <div class="form-group">
+                <label for="company_name">Company Name*</label>
+                <input type="text" id="company_name" name="company_name" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="title">Store Title*</label>
+                <input type="text" id="title" name="title" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="description">Description*</label>
+                <textarea id="description" name="description" required></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="location">Location*</label>
+                <input type="text" id="location" name="location" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="work_type">Work Type*</label>
+                <select id="work_type" name="work_type" required>
+                    <option value="retail">Retail</option>
+                    <option value="boutique">Boutique</option>
+                    <option value="designer">Designer</option>
+                    <option value="casual">Casual</option>
+                    <option value="luxury">Luxury</option>
+                    <option value="sustainable">Sustainable</option>
+                    <option value="manufacturing">Manufacturing</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="is_remote">Is Remote</label>
+                <select id="is_remote" name="is_remote">
+                    <option value="false">No</option>
+                    <option value="true">Yes</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="average_rating">Average Rating (0-5)</label>
+                <input type="number" id="average_rating" name="average_rating" min="0" max="5" step="0.1" value="4.5">
+            </div>
+            
+            <div class="form-group">
+                <label for="review_count">Review Count</label>
+                <input type="number" id="review_count" name="review_count" min="0" value="25">
+            </div>
+            
+            <button type="submit">Add Store</button>
+        </form>
+    </div>
+    
+    <div class="result" id="result"></div>
+    
+    <script>
+        document.getElementById('addStoreForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = {};
+            
+            formData.forEach((value, key) => {
+                // Convert "true"/"false" strings to actual booleans
+                if (value === 'true') {
+                    data[key] = true;
+                } else if (value === 'false') {
+                    data[key] = false;
+                } else if (!isNaN(value) && key !== 'company_name' && key !== 'title' && key !== 'description' && key !== 'location' && key !== 'work_type') {
+                    // Convert to number if it's numeric
+                    data[key] = Number(value);
+                } else {
+                    data[key] = value;
+                }
+            });
+            
+            // Add additional fields
+            data.branches = [`BRANCH${Math.floor(Math.random() * 1000)}`];
+            data.owner = "admin"; // default owner
+            data.views = Math.floor(Math.random() * 500);
+            data.created_at = new Date().toISOString();
+            data.updated_at = new Date().toISOString();
+            
+            try {
+                const response = await fetch('http://localhost:5000/stores', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTY5NzQ2OTk0MCwianRpIjoiMjI4NGQ1NDMtZTgxOS00ZWU4LWE0ZWUtYjRkNzNmZmNlMGNmIiwidHlwZSI6ImFjY2VzcyIsInN1YiI6ImFkbWluIiwibmJmIjoxNjk3NDY5OTQwLCJleHAiOjE2OTc0ODc5NDAsInJvbGUiOiJhZG1pbiJ9.cS5A1dNk1aJXT4_NFXkBOPCvuJWcJsKskL8xqqZdylE'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const resultData = await response.json();
+                const resultElement = document.getElementById('result');
+                
+                if (response.ok) {
+                    resultElement.textContent = 'Store added successfully! ID: ' + resultData.store_id;
+                    resultElement.classList.remove('error');
+                } else {
+                    resultElement.textContent = 'Error: ' + resultData.message || 'Unknown error occurred';
+                    resultElement.classList.add('error');
+                }
+                
+                resultElement.style.display = 'block';
+                
+                if (response.ok) {
+                    // Reset form on success
+                    document.getElementById('addStoreForm').reset();
+                }
+                
+            } catch (error) {
+                const resultElement = document.getElementById('result');
+                resultElement.textContent = 'Error: ' + error.message;
+                resultElement.classList.add('error');
+                resultElement.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html> 

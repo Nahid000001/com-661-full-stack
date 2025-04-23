@@ -40,16 +40,8 @@ export class NavigationComponent implements OnInit {
   }
 
   logout() {
-    this.authService.logout().subscribe({
-      next: () => {
-        // Dropdown is already closed by the service clearing the user data
-        this.isUserDropdownOpen = false;
-      },
-      error: (err) => {
-        console.error('Error during logout:', err);
-        this.isUserDropdownOpen = false;
-      }
-    });
+    this.authService.logout();
+    this.isUserDropdownOpen = false;
   }
 
   toggleMobileMenu() {

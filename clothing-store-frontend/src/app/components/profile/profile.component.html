@@ -1,0 +1,80 @@
+<div class="profile-container">
+  <h2>User Profile</h2>
+  
+  <div *ngIf="loading" class="loading-spinner">
+    <div class="spinner"></div>
+    Loading profile...
+  </div>
+  
+  <div *ngIf="error" class="alert alert-danger">
+    {{ error }}
+  </div>
+  
+  <div *ngIf="updateSuccess" class="alert alert-success">
+    Your profile has been updated successfully!
+  </div>
+  
+  <div *ngIf="user && !loading" class="profile-details">
+    <div class="user-info-section">
+      <div class="user-avatar">
+        {{ getUserInitial() }}
+      </div>
+      <div class="user-basic-info">
+        <h3>{{ user.username }}</h3>
+        <span class="user-role">{{ user.role }}</span>
+        <span class="join-date">Joined: {{ user.created_at | date }}</span>
+      </div>
+    </div>
+    
+    <form [formGroup]="profileForm" (ngSubmit)="updateProfile()" class="profile-form">
+      <div class="form-group">
+        <label for="first_name">First Name</label>
+        <input 
+          type="text" 
+          id="first_name" 
+          formControlName="first_name" 
+          class="form-control"
+          [ngClass]="{'invalid': profileForm.get('first_name')?.invalid && profileForm.get('first_name')?.touched}"
+        >
+        <div *ngIf="profileForm.get('first_name')?.invalid && profileForm.get('first_name')?.touched" class="validation-error">
+          First name is required
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="last_name">Last Name</label>
+        <input 
+          type="text" 
+          id="last_name" 
+          formControlName="last_name" 
+          class="form-control"
+          [ngClass]="{'invalid': profileForm.get('last_name')?.invalid && profileForm.get('last_name')?.touched}"
+        >
+        <div *ngIf="profileForm.get('last_name')?.invalid && profileForm.get('last_name')?.touched" class="validation-error">
+          Last name is required
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input 
+          type="email" 
+          id="email" 
+          formControlName="email" 
+          class="form-control"
+          [ngClass]="{'invalid': profileForm.get('email')?.invalid && profileForm.get('email')?.touched}"
+        >
+        <div *ngIf="profileForm.get('email')?.invalid && profileForm.get('email')?.touched" class="validation-error">
+          <span *ngIf="profileForm.get('email')?.errors?.['required']">Email is required</span>
+          <span *ngIf="profileForm.get('email')?.errors?.['email']">Please enter a valid email address</span>
+        </div>
+      </div>
+      
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" [disabled]="profileForm.invalid || loading">
+          {{ loading ? 'Updating...' : 'Update Profile' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div> 

@@ -36,12 +36,14 @@ export class StoreListComponent implements OnInit {
   
   // Store image placeholders - for real app, these would be actual images from a CDN
   storeImages = [
-    'https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80',
-    'https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80',
-    'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80',
-    'https://images.unsplash.com/photo-1542060748-10c28b62716f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80',
-    'https://images.unsplash.com/photo-1441986300917-64674bd600d8?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80',
-    'https://images.unsplash.com/photo-1472851294608-062f824d29cc?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80'
+    'https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80', // Clothing rack with bright colors
+    'https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80', // Modern clothing store
+    'https://images.unsplash.com/photo-1567401893414-91b2a97e5b52?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80', // Person browsing clothes
+    'https://images.unsplash.com/photo-1562157873-818bc0726f68?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1654&q=80', // Retail display
+    'https://images.unsplash.com/photo-1582719471384-894fbb16e074?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1587&q=80', // Fashion store luxury
+    'https://images.unsplash.com/photo-1601924994987-69e26d50dc26?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80', // Boutique interior
+    'https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80', // Modern clothing on racks
+    'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1587&q=80'  // High end clothing display
   ];
   
   // Color palette for store cards (used as fallback)
@@ -68,18 +70,9 @@ export class StoreListComponent implements OnInit {
     this.error = '';
     console.log(`Loading stores page ${this.page} with limit ${this.limit}`);
     
-    // Set a timeout to load mock data if the real data takes too long
-    const loadingTimeout = setTimeout(() => {
-      if (this.loading) {
-        console.log('Loading taking too long, using mock data');
-        this.loadMockStores();
-      }
-    }, 500); // Show mock data after 500ms if real data hasn't loaded
-    
     this.storeService.getAllStores(this.page, this.limit)
       .subscribe({
         next: data => {
-          clearTimeout(loadingTimeout);
           console.log('Received store data:', data);
           if (data && data.stores) {
             this.stores = data.stores;
@@ -91,98 +84,20 @@ export class StoreListComponent implements OnInit {
             this.extractFilterOptions();
           } else {
             console.error('Unexpected data structure:', data);
-            this.error = ''; // Clear error message instead of showing it
+            this.error = 'No stores found. Please try again later.';
             this.loading = false;
-            this.loadMockStores();
+            this.stores = [];
+            this.filteredStores = [];
           }
         },
         error: error => {
-          clearTimeout(loadingTimeout);
           console.error('Error loading stores:', error);
-          this.error = ''; // Clear error message instead of showing it
-          this.errorService.clearError(); // Also clear it from the error service
+          this.error = 'Failed to load stores. Please try again later.';
           this.loading = false;
-          this.loadMockStores();
+          this.stores = [];
+          this.filteredStores = [];
         }
       });
-  }
-
-  loadMockStores() {
-    // Clear loading state and error
-    this.loading = false;
-    this.error = '';
-    this.errorService.clearError();
-    
-    // Provide mock store data for demonstration
-    this.stores = [
-      {
-        _id: '1',
-        company_name: 'Fashion Forward',
-        title: 'Premium Fashion Store',
-        description: 'Premium clothing store offering the latest trends in fashion for all seasons.',
-        location: 'New York',
-        work_type: 'RETAIL',
-        average_rating: '4.8',
-        review_count: 42
-      },
-      {
-        _id: '2',
-        company_name: 'Urban Threads',
-        title: 'Contemporary Designs',
-        description: 'Contemporary clothing store with unique designs for the modern lifestyle.',
-        location: 'Los Angeles',
-        work_type: 'BOUTIQUE',
-        average_rating: '4.6',
-        review_count: 35
-      },
-      {
-        _id: '3',
-        company_name: 'Classic Couture',
-        title: 'Timeless Elegance',
-        description: 'Elegant and timeless fashion pieces for the sophisticated shopper.',
-        location: 'Chicago',
-        work_type: 'DESIGNER',
-        average_rating: '4.7',
-        review_count: 28
-      },
-      {
-        _id: '4',
-        company_name: 'Street Style',
-        title: 'Urban Streetwear',
-        description: 'Urban clothing and accessories inspired by street culture and modern art.',
-        location: 'Miami',
-        work_type: 'CASUAL',
-        average_rating: '4.5',
-        review_count: 31
-      },
-      {
-        _id: '5',
-        company_name: 'Eco Apparel',
-        title: 'Sustainable Fashion',
-        description: 'Environmentally friendly clothing made from sustainable materials.',
-        location: 'Portland',
-        work_type: 'SUSTAINABLE',
-        average_rating: '4.9',
-        review_count: 45
-      },
-      {
-        _id: '6',
-        company_name: 'Luxe Fashion',
-        title: 'Luxury Clothing',
-        description: 'High-end designer clothing and accessories for the fashion-conscious.',
-        location: 'New York',
-        work_type: 'LUXURY',
-        average_rating: '4.7',
-        review_count: 38
-      }
-    ];
-    
-    this.filteredStores = [...this.stores];
-    this.totalPages = 1;
-    this.error = ''; // Clear error once we've loaded mock data
-    
-    // Extract unique locations and types for filters
-    this.extractFilterOptions();
   }
 
   extractFilterOptions() {
@@ -359,13 +274,26 @@ export class StoreListComponent implements OnInit {
   }
   
   getStoreImage(store: any): string {
-    // In a real app, you'd use store.image_url or similar
-    // For demo purposes, we'll generate a consistent image based on store ID
-    const id = store._id || '';
-    const hashCode = this.hashString(store.company_name + id);
-    const index = Math.abs(hashCode) % this.storeImages.length;
+    // Map store types to specific image categories 
+    const typeToImageIndex: Record<string, number> = {
+      'RETAIL': 0,
+      'BOUTIQUE': 1,
+      'DESIGNER': 2,
+      'CASUAL': 3,
+      'LUXURY': 4,
+      'SUSTAINABLE': 5
+    };
     
-    return this.storeImages[index];
+    // Use store type to determine image if available, otherwise use ID
+    let index = 0;
+    if (store.work_type && typeof store.work_type === 'string' && typeToImageIndex[store.work_type] !== undefined) {
+      index = typeToImageIndex[store.work_type];
+    } else if (store._id) {
+      // Fallback to hash-based selection
+      index = this.hashString(store._id) % this.storeImages.length;
+    }
+    
+    return this.storeImages[index] || this.storeImages[0];
   }
   
   hashString(str: string): number {
@@ -379,15 +307,26 @@ export class StoreListComponent implements OnInit {
   }
 
   getTypeBadgeClass(type: string): string {
-    const typeMap: {[key: string]: string} = {
-      'Retail': 'badge-retail',
-      'Online': 'badge-online',
-      'Boutique': 'badge-boutique',
-      'Department': 'badge-department',
-      'Outlet': 'badge-outlet'
-    };
+    if (!type) return 'badge-retail'; // Default
     
-    return typeMap[type] || 'badge-default';
+    const normalizedType = type.toUpperCase();
+    
+    switch (normalizedType) {
+      case 'RETAIL':
+        return 'badge-retail';
+      case 'BOUTIQUE':
+        return 'badge-boutique';
+      case 'DESIGNER':
+        return 'badge-designer';
+      case 'CASUAL':
+        return 'badge-casual';
+      case 'LUXURY':
+        return 'badge-luxury';
+      case 'SUSTAINABLE':
+        return 'badge-sustainable';
+      default:
+        return 'badge-retail';
+    }
   }
 
   truncateText(text: string, maxLength: number): string {

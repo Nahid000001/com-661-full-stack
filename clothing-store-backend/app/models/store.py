@@ -43,12 +43,43 @@ def create_store(store_data, owner):
     store_id = mongo.db.stores.insert_one(store).inserted_id
     return {"store_id": str(store_id), "branch_id": branch_id, "is_new": True}
 
-def get_all_stores(page=1, limit=10):
-    """Get all stores with pagination."""
+def get_all_stores(page=1, limit=10, sort=''):
+    """Get all stores with pagination and optional sorting."""
     skip = (page - 1) * limit
     
-    stores_cursor = mongo.db.stores.find().skip(skip).limit(limit)
-    stores = [{**store, "_id": str(store["_id"])} for store in stores_cursor]
+    # Set up the sort order
+    sort_options = {
+        'rating': [('average_rating', -1)],  # Sort by rating descending
+        'newest': [('created_at', -1)],      # Sort by creation date descending
+        'oldest': [('created_at', 1)],       # Sort by creation date ascending
+        'nameAsc': [('company_name', 1)],    # Sort by name ascending
+        'nameDesc': [('company_name', -1)]   # Sort by name descending
+    }
+    
+    # Default sort order is by creation date, newest first
+    sort_order = sort_options.get(sort, [('created_at', -1)])
+    
+    # Get the stores with sorting applied
+    stores_cursor = mongo.db.stores.find().sort(sort_order).skip(skip).limit(limit)
+    
+    # Process the stores to include any computed fields
+    stores = []
+    for store in stores_cursor:
+        store_dict = {**store, "_id": str(store["_id"])}
+        
+        # Calculate average rating if it doesn't exist
+        if 'average_rating' not in store_dict and 'reviews' in store_dict and store_dict['reviews']:
+            ratings = [review.get('rating', 0) for review in store_dict['reviews'] if isinstance(review, dict)]
+            if ratings:
+                store_dict['average_rating'] = sum(ratings) / len(ratings)
+            else:
+                store_dict['average_rating'] = 0
+        
+        # Add review count
+        if 'reviews' in store_dict:
+            store_dict['review_count'] = len(store_dict['reviews']) if isinstance(store_dict['reviews'], list) else 0
+        
+        stores.append(store_dict)
     
     total_stores = mongo.db.stores.count_documents({})
     
