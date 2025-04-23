@@ -78,19 +78,6 @@ chmod +x start.sh
 ./start.sh
 ```
 
-## Troubleshooting
-
-### API Connection Issues
-
-- Ensure MongoDB is running
-- Verify that the backend server is running on port 5000
-- Check CORS settings if you're experiencing cross-origin issues
-
-### Database Issues
-
-- MongoDB needs to be installed and running
-- Default connection string is `mongodb://localhost:27017/clothing_store`
-
 ## Features
 
 - Browse clothing stores
@@ -99,6 +86,52 @@ chmod +x start.sh
 - Add new stores (requires login)
 - Add reviews for stores (requires login)
 - User authentication system
+- Admin management interface
+
+## Recent Improvements
+
+### Backend Enhancements
+
+- **Standardized Error Handling**: Implemented consistent error handling using custom exception types across all API endpoints.
+- **Database Optimization**: Added comprehensive MongoDB indexes for stores, users, and reviews collections to improve query performance.
+- **API Documentation**: Added Swagger API documentation to all major endpoints for easier API integration.
+- **Security Improvements**: Enhanced JWT token handling with proper Redis integration for token invalidation.
+- **Data Validation**: Improved validation for all API inputs with clear error messages.
+
+### Frontend Enhancements
+
+- **Lazy Loading**: Implemented lazy loading for all major routes to improve initial load time and performance.
+- **Form Validation**: Added comprehensive form validation with detailed error messages.
+- **Error Handling**: Improved error handling in services with clear user feedback.
+- **Removed Fallback Data**: Eliminated dummy/fallback data from services to ensure real API interactions.
+- **UI Improvements**: Enhanced modal components and form controls for better user experience.
+
+### Testing and Documentation
+
+- **API Tests**: Extended test coverage for API endpoints.
+- **Documentation**: Updated documentation with detailed setup instructions and feature documentation.
+
+## Architecture
+
+### Backend (Flask/MongoDB)
+
+The backend follows a structured architecture:
+
+- **Routes**: API endpoints for stores, reviews, authentication, and admin operations
+- **Models**: Data models for stores, users, and reviews
+- **Utils**: Utility functions for error handling, validation, and helpers
+- **Middleware**: Authentication and request processing middleware
+- **Config**: Application configuration management
+
+### Frontend (Angular)
+
+The frontend follows Angular best practices:
+
+- **Components**: Modular components for different views and features
+- **Services**: API service layer for backend communication
+- **Guards**: Route guards for authentication and authorization
+- **Interceptors**: HTTP interceptors for authentication token management
+- **Models/Interfaces**: TypeScript interfaces for type safety
 
 ## License
 

@@ -1,18 +1,17 @@
 // src/app/guards/admin.guard.ts
 import { inject } from '@angular/core';
-import { Router } from '@angular/router';
+import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
-export function adminGuard() {
-  const router = inject(Router);
+export const adminGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
+  const router = inject(Router);
   
-  if (authService.isLoggedIn()) {
-    const role = authService.getUserRole();
-    if (role === 'admin') {
-      return true;
-    }
+  if (authService.hasRole('admin')) {
+    return true;
   }
   
-  return router.parseUrl('/');
-}
+  // If not admin, redirect to home page
+  router.navigate(['/']);
+  return false;
+};

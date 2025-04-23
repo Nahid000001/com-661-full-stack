@@ -2,6 +2,13 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from app.models import review, store
 from app.utils import is_valid_object_id
+from app.utils.error_handler import (
+    ApiError, 
+    ResourceNotFoundError, 
+    UnauthorizedError, 
+    ForbiddenError, 
+    ValidationError
+)
 
 reviews_bp = Blueprint('reviews', __name__)
 
@@ -10,19 +17,23 @@ def get_store_reviews(store_id):
     """Get all reviews for a store."""
     try:
         if not is_valid_object_id(store_id):
-            return jsonify({"status": "error", "message": "Invalid store ID format"}), 400
+            raise ValidationError("Invalid store ID format")
             
         page = int(request.args.get('page', 1))
         limit = int(request.args.get('limit', 5))
         
         result = review.get_store_reviews(store_id, page, limit)
         if not result:
-            return jsonify({"status": "error", "message": "Store not found"}), 404
+            raise ResourceNotFoundError("Store not found")
             
         return jsonify(result), 200
         
+    except (ValidationError, ResourceNotFoundError) as e:
+        raise e
+    except ValueError:
+        raise ValidationError("Invalid pagination parameters")
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 400
+        raise ApiError(str(e))
 
 
 @reviews_bp.route('/stores/<store_id>/reviews/add', methods=['POST'])
@@ -31,7 +42,7 @@ def add_review_to_store(store_id):
     """Add a review to a store."""
     try:
         if not is_valid_object_id(store_id):
-            return jsonify({"status": "error", "message": "Invalid store ID format"}), 400
+            raise ValidationError("Invalid store ID format")
             
         data = request.get_json()
         rating = data.get("rating")
@@ -39,19 +50,21 @@ def add_review_to_store(store_id):
         user = get_jwt_identity()
 
         if not isinstance(rating, (int, float)) or not (1 <= rating <= 5):
-            return jsonify({"status": "error", "message": "Rating must be between 1 and 5"}), 400
+            raise ValidationError("Rating must be between 1 and 5")
 
         if not isinstance(comment, str) or comment.strip() == "":
-            return jsonify({"status": "error", "message": "Comment cannot be empty"}), 400
+            raise ValidationError("Comment cannot be empty")
 
         success, message = review.add_review(store_id, user, rating, comment)
         if not success:
-            return jsonify({"status": "error", "message": message}), 400
+            raise ValidationError(message)
             
         return jsonify({"message": message}), 201
         
+    except (ValidationError, ForbiddenError) as e:
+        raise e
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 400
+        raise ApiError(str(e))
 
 
 @reviews_bp.route('/stores/<store_id>/reviews/<review_id>', methods=['PATCH'])
@@ -60,7 +73,7 @@ def edit_store_review(store_id, review_id):
     """Edit a review."""
     try:
         if not is_valid_object_id(store_id):
-            return jsonify({"status": "error", "message": "Invalid store ID format"}), 400
+            raise ValidationError("Invalid store ID format")
             
         data = request.get_json()
         new_comment = data.get("comment", "").strip()
@@ -69,19 +82,21 @@ def edit_store_review(store_id, review_id):
 
         if new_rating is not None:
             if not isinstance(new_rating, (int, float)) or not (1 <= new_rating <= 5):
-                return jsonify({"status": "error", "message": "Rating must be between 1 and 5"}), 400
+                raise ValidationError("Rating must be between 1 and 5")
 
         if not new_comment and new_rating is None:
-            return jsonify({"status": "error", "message": "Nothing to update"}), 400
+            raise ValidationError("Nothing to update")
 
         success, message = review.edit_review(store_id, review_id, user, new_comment, new_rating)
         if not success:
-            return jsonify({"status": "error", "message": message}), 403
+            raise ForbiddenError(message)
             
         return jsonify({"message": message}), 200
         
+    except (ValidationError, ForbiddenError) as e:
+        raise e
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 400
+        raise ApiError(str(e))
 
 
 @reviews_bp.route('/stores/<store_id>/reviews/<review_id>', methods=['DELETE'])
@@ -90,17 +105,14 @@ def delete_store_review(store_id, review_id):
     """Delete a review. Only admin and store owners can delete reviews."""
     try:
         if not is_valid_object_id(store_id):
-            return jsonify({"status": "error", "message": "Invalid store ID format"}), 400
+            raise ValidationError("Invalid store ID format")
             
         user = get_jwt_identity()
         claims = get_jwt()
         user_role = claims.get("role", "customer")
         
         if user_role == "customer":
-            return jsonify({
-                "status": "error", 
-                "message": "Customers are not permitted to delete reviews. You may edit your review instead."
-            }), 403
+            raise ForbiddenError("Customers are not permitted to delete reviews. You may edit your review instead.")
         
         # Checking if user is admin or store_owner
         is_admin = user_role == "admin"
@@ -110,14 +122,16 @@ def delete_store_review(store_id, review_id):
         if is_admin or is_store_owner:
             success, message = review.delete_review(store_id, review_id, user, is_admin)
             if not success:
-                return jsonify({"status": "error", "message": message}), 403
+                raise ForbiddenError(message)
                 
             return jsonify({"message": message}), 200
         else:
-            return jsonify({"status": "error", "message": "Unauthorized to delete reviews"}), 403
+            raise ForbiddenError("Unauthorized to delete reviews")
         
+    except (ValidationError, ForbiddenError) as e:
+        raise e
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 400
+        raise ApiError(str(e))
 
 
 @reviews_bp.route('/stores/<store_id>/reviews/<review_id>/reply', methods=['POST'])
@@ -126,7 +140,7 @@ def reply_to_store_review(store_id, review_id):
     """Add a reply to a review."""
     try:
         if not is_valid_object_id(store_id):
-            return jsonify({"status": "error", "message": "Invalid store ID format"}), 400
+            raise ValidationError("Invalid store ID format")
             
         data = request.get_json()
         reply_text = data.get("reply", "").strip()
@@ -134,24 +148,23 @@ def reply_to_store_review(store_id, review_id):
         claims = get_jwt()
         
         if not reply_text:
-            return jsonify({"status": "error", "message": "Reply text is required"}), 400
+            raise ValidationError("Reply text is required")
             
         # Only allow replies from admins or store owners
         store_data = store.get_store_by_id(store_id)
         if not store_data:
-            return jsonify({"status": "error", "message": "Store not found"}), 404
+            raise ResourceNotFoundError("Store not found")
             
         if claims.get("role") != "admin" and store_data.get("owner", "") != user:
-            return jsonify({
-                "status": "error", 
-                "message": "Unauthorized: Only the store owner or admin can reply"
-            }), 403
+            raise ForbiddenError("Unauthorized: Only the store owner or admin can reply")
             
         success, message = review.add_reply_to_review(store_id, review_id, user, reply_text)
         if not success:
-            return jsonify({"status": "error", "message": message}), 404
+            raise ResourceNotFoundError(message)
             
         return jsonify({"message": message}), 201
         
+    except (ValidationError, ResourceNotFoundError, ForbiddenError) as e:
+        raise e
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        raise ApiError(str(e))

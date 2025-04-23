@@ -208,46 +208,97 @@
   </div>
 </div>
 
-<!-- Edit Store Modal -->
-<div *ngIf="showEditModal" class="modal-overlay">
+<!-- Store Edit Modal -->
+<div class="modal" [class.show]="showEditModal">
+  <div class="modal-backdrop" (click)="cancelEdit()"></div>
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h2 class="modal-title">Edit Store</h2>
-        <button class="modal-close" (click)="cancelEdit()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
+        <h5 class="modal-title">Edit Store</h5>
+        <button type="button" class="close" (click)="cancelEdit()">&times;</button>
       </div>
       <div class="modal-body">
         <form [formGroup]="editForm" (ngSubmit)="submitEdit()">
           <div class="form-group">
             <label for="company_name">Company Name</label>
-            <input type="text" id="company_name" formControlName="company_name" class="form-control">
+            <input 
+              type="text" 
+              class="form-control" 
+              id="company_name" 
+              formControlName="company_name"
+              [ngClass]="{'is-invalid': editForm.get('company_name')?.invalid && (editForm.get('company_name')?.dirty || editForm.get('company_name')?.touched)}"
+            >
+            <div *ngIf="editForm.get('company_name')?.invalid && (editForm.get('company_name')?.dirty || editForm.get('company_name')?.touched)" class="invalid-feedback">
+              <div *ngIf="editForm.get('company_name')?.errors?.['required']">Company name is required.</div>
+              <div *ngIf="editForm.get('company_name')?.errors?.['minlength']">Company name must be at least 2 characters.</div>
+            </div>
           </div>
+          
+          <div class="form-group">
+            <label for="title">Title</label>
+            <input 
+              type="text" 
+              class="form-control" 
+              id="title" 
+              formControlName="title"
+              [ngClass]="{'is-invalid': editForm.get('title')?.invalid && (editForm.get('title')?.dirty || editForm.get('title')?.touched)}"
+            >
+            <div *ngIf="editForm.get('title')?.invalid && (editForm.get('title')?.dirty || editForm.get('title')?.touched)" class="invalid-feedback">
+              <div *ngIf="editForm.get('title')?.errors?.['required']">Title is required.</div>
+            </div>
+          </div>
+          
           <div class="form-group">
             <label for="location">Location</label>
-            <input type="text" id="location" formControlName="location" class="form-control">
+            <input 
+              type="text" 
+              class="form-control" 
+              id="location" 
+              formControlName="location"
+              [ngClass]="{'is-invalid': editForm.get('location')?.invalid && (editForm.get('location')?.dirty || editForm.get('location')?.touched)}"
+            >
+            <div *ngIf="editForm.get('location')?.invalid && (editForm.get('location')?.dirty || editForm.get('location')?.touched)" class="invalid-feedback">
+              <div *ngIf="editForm.get('location')?.errors?.['required']">Location is required.</div>
+            </div>
           </div>
+          
           <div class="form-group">
-            <label for="work_type">Type</label>
-            <select id="work_type" formControlName="work_type" class="form-control">
-              <option value="RETAIL">Retail</option>
-              <option value="WHOLESALE">Wholesale</option>
-              <option value="MANUFACTURER">Manufacturer</option>
-              <option value="BOUTIQUE">Boutique</option>
+            <label for="work_type">Work Type</label>
+            <select 
+              class="form-control" 
+              id="work_type" 
+              formControlName="work_type"
+              [ngClass]="{'is-invalid': editForm.get('work_type')?.invalid && (editForm.get('work_type')?.dirty || editForm.get('work_type')?.touched)}"
+            >
+              <option value="retail">Retail</option>
+              <option value="manufacturing">Manufacturing</option>
+              <option value="wholesale">Wholesale</option>
+              <option value="online">Online</option>
             </select>
+            <div *ngIf="editForm.get('work_type')?.invalid && (editForm.get('work_type')?.dirty || editForm.get('work_type')?.touched)" class="invalid-feedback">
+              <div *ngIf="editForm.get('work_type')?.errors?.['required']">Work type is required.</div>
+            </div>
           </div>
-          <div class="form-group">
-            <label for="title">Title/Slogan</label>
-            <input type="text" id="title" formControlName="title" class="form-control">
-          </div>
+          
           <div class="form-group">
             <label for="description">Description</label>
-            <textarea id="description" formControlName="description" class="form-control" rows="4"></textarea>
+            <textarea 
+              class="form-control" 
+              id="description" 
+              rows="3" 
+              formControlName="description"
+              [ngClass]="{'is-invalid': editForm.get('description')?.invalid && (editForm.get('description')?.dirty || editForm.get('description')?.touched)}"
+            ></textarea>
+            <div *ngIf="editForm.get('description')?.invalid && (editForm.get('description')?.dirty || editForm.get('description')?.touched)" class="invalid-feedback">
+              <div *ngIf="editForm.get('description')?.errors?.['required']">Description is required.</div>
+              <div *ngIf="editForm.get('description')?.errors?.['minlength']">Description must be at least 10 characters.</div>
+            </div>
           </div>
+          
+          <div class="form-group" *ngIf="formError">
+            <div class="alert alert-danger">{{ formError }}</div>
+          </div>
+          
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" (click)="cancelEdit()">Cancel</button>
             <button type="submit" class="btn btn-primary" [disabled]="editForm.invalid || updating">
@@ -261,35 +312,27 @@
   </div>
 </div>
 
-<!-- Delete Confirmation Modal -->
-<div *ngIf="showDeleteModal" class="modal-overlay">
-  <div class="modal-dialog delete-dialog">
+<!-- Store Delete Modal -->
+<div class="modal" [class.show]="showDeleteModal">
+  <div class="modal-backdrop" (click)="cancelDelete()"></div>
+  <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h2 class="modal-title">Confirm Deletion</h2>
-        <button class="modal-close" (click)="cancelDelete()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
+        <h5 class="modal-title">Confirm Delete</h5>
+        <button type="button" class="close" (click)="cancelDelete()">&times;</button>
       </div>
       <div class="modal-body">
-        <div class="delete-warning">
-          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-            <line x1="12" y1="9" x2="12" y2="13"></line>
-            <line x1="12" y1="17" x2="12.01" y2="17"></line>
-          </svg>
-          <p>Are you sure you want to delete <strong>{{ store?.company_name }}</strong>? This action cannot be undone.</p>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="cancelDelete()">Cancel</button>
-          <button type="button" class="btn btn-danger" (click)="confirmDelete()" [disabled]="deleting">
-            <span *ngIf="deleting" class="spinner-border spinner-border-sm mr-1"></span>
-            Delete Store
-          </button>
-        </div>
+        <p>Are you sure you want to delete <strong>{{ store?.company_name }}</strong>?</p>
+        <p>This action cannot be undone.</p>
+        
+        <div class="alert alert-danger" *ngIf="deleteError">{{ deleteError }}</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="cancelDelete()">Cancel</button>
+        <button type="button" class="btn btn-danger" (click)="confirmDelete()" [disabled]="deleting">
+          <span *ngIf="deleting" class="spinner-border spinner-border-sm mr-1"></span>
+          Delete Store
+        </button>
       </div>
     </div>
   </div>

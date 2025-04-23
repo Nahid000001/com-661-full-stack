@@ -83,8 +83,25 @@ def create_app(config_name='default'):
     
     try:
         with app.app_context():
+            # Store indexes
             mongo.db.stores.create_index("company_name")
             mongo.db.stores.create_index("location")
+            mongo.db.stores.create_index("owner")
+            mongo.db.stores.create_index("average_rating")
+            mongo.db.stores.create_index("work_type")
+            
+            # User indexes
+            mongo.db.users.create_index("username", unique=True)
+            mongo.db.users.create_index("email", unique=True, sparse=True)
+            
+            # Review indexes
+            mongo.db.reviews.create_index("store_id")
+            mongo.db.reviews.create_index("user_id")
+            mongo.db.reviews.create_index([("store_id", 1), ("user_id", 1)])
+            mongo.db.reviews.create_index("created_at")
+            mongo.db.reviews.create_index("rating")
+            
+            print("Database indexes created successfully")
     except Exception as e:
         print(f"Index creation warning: {str(e)}")
 

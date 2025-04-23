@@ -40,6 +40,8 @@ export class StoreDetailComponent implements OnInit {
   editForm: FormGroup;
   updating: boolean = false;
   deleting: boolean = false;
+  formError: string = '';
+  deleteError: string = '';
   
   // Store image placeholders
   storeImages = [
@@ -58,11 +60,11 @@ export class StoreDetailComponent implements OnInit {
     private fb: FormBuilder
   ) {
     this.editForm = this.fb.group({
-      company_name: ['', Validators.required],
+      company_name: ['', [Validators.required, Validators.minLength(2)]],
       location: ['', Validators.required],
-      work_type: ['RETAIL'],
-      title: [''],
-      description: ['', Validators.required]
+      work_type: ['retail', Validators.required],
+      title: ['', Validators.required],
+      description: ['', [Validators.required, Validators.minLength(10)]]
     });
   }
 
@@ -97,7 +99,7 @@ export class StoreDetailComponent implements OnInit {
         },
         error: (error) => {
           console.error('Error loading store details:', error);
-          this.error = error.error?.message || 'Failed to load store details';
+          this.error = error.message || 'Failed to load store details';
           this.loading = false;
         }
       });
@@ -127,9 +129,13 @@ export class StoreDetailComponent implements OnInit {
         
         this.isAdmin = role === 'admin';
         // Check if user is the owner when store data is loaded
-        this.storeService.getStoreById(this.storeId).subscribe(store => {
-          this.isOwner = userId === store.owner || role === 'store_owner';
-        });
+        if (this.store) {
+          this.isOwner = userId === this.store.owner || role === 'store_owner';
+        } else {
+          this.storeService.getStoreById(this.storeId).subscribe(store => {
+            this.isOwner = userId === store.owner || role === 'store_owner';
+          });
+        }
       } else {
         this.isAdmin = false;
         this.isOwner = false;
@@ -186,12 +192,13 @@ export class StoreDetailComponent implements OnInit {
   // Admin Methods
   updateStore() {
     this.showEditModal = true;
+    this.formError = '';
     
     // Populate form with store data
     this.editForm.patchValue({
       company_name: this.store.company_name,
       location: this.store.location,
-      work_type: this.store.work_type || 'RETAIL',
+      work_type: this.store.work_type || 'retail',
       title: this.store.title || '',
       description: this.store.description || ''
     });
@@ -199,12 +206,20 @@ export class StoreDetailComponent implements OnInit {
 
   cancelEdit() {
     this.showEditModal = false;
+    this.formError = '';
+    this.editForm.reset();
   }
 
   submitEdit() {
-    if (this.editForm.invalid) return;
+    if (this.editForm.invalid) {
+      this.markFormGroupTouched(this.editForm);
+      this.formError = 'Please correct the errors in the form before submitting.';
+      return;
+    }
     
     this.updating = true;
+    this.formError = '';
+    
     const updatedStore = { 
       ...this.editForm.value,
       _id: this.storeId
@@ -212,29 +227,46 @@ export class StoreDetailComponent implements OnInit {
     
     this.storeService.updateStore(this.storeId, updatedStore)
       .subscribe({
-        next: (data) => {
-          this.store = data;
+        next: (response: any) => {
+          // Update local store data
+          this.store = {
+            ...this.store,
+            ...updatedStore
+          };
           this.showEditModal = false;
           this.updating = false;
         },
         error: (error) => {
           console.error('Error updating store:', error);
+          this.formError = error.message || 'Failed to update store. Please try again.';
           this.updating = false;
-          // Could show error message here
         }
       });
+  }
+  
+  // Helper to mark all form controls as touched
+  markFormGroupTouched(formGroup: FormGroup) {
+    Object.values(formGroup.controls).forEach(control => {
+      control.markAsTouched();
+      if (control instanceof FormGroup) {
+        this.markFormGroupTouched(control);
+      }
+    });
   }
 
   deleteStore() {
     this.showDeleteModal = true;
+    this.deleteError = '';
   }
 
   cancelDelete() {
     this.showDeleteModal = false;
+    this.deleteError = '';
   }
 
   confirmDelete() {
     this.deleting = true;
+    this.deleteError = '';
     
     this.storeService.deleteStore(this.storeId)
       .subscribe({
@@ -243,8 +275,8 @@ export class StoreDetailComponent implements OnInit {
         },
         error: (error) => {
           console.error('Error deleting store:', error);
+          this.deleteError = error.message || 'Failed to delete store. Please try again.';
           this.deleting = false;
-          // Could show error message here
         }
       });
   }

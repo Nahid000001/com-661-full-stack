@@ -16,8 +16,8 @@ from app import jwt, mongo
 import secrets
 import os
 import requests
-from google.oauth2 import id_token
-from google.auth.transport import requests as google_requests
+# from google.oauth2 import id_token
+# from google.auth.transport import requests as google_requests
 
 # Creating blueprint
 auth_bp = Blueprint('auth', __name__)

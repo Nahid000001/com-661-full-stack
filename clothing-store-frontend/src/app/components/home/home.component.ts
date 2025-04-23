@@ -129,13 +129,7 @@ export class HomeComponent implements OnInit {
     this.error = '';
     console.log('Attempting to load featured stores...');
     
-    // Always use dummy data to ensure stores appear
-    this.featuredStores = this.getDummyStores();
-    this.loading = false;
-    this.error = '';
-    
-    /* Commented out actual API call for now
-    this.storeService.getFeaturedStores(4)
+    this.storeService.getAllStores(1, 4)
       .subscribe({
         next: data => {
           console.log('Received store data:', data);
@@ -147,7 +141,7 @@ export class HomeComponent implements OnInit {
             console.log('Featured stores set:', this.featuredStores);
           } else {
             console.log('No stores returned or empty array');
-            // Using dummy data instead of showing error
+            // Fall back to dummy data if no stores are returned
             this.featuredStores = this.getDummyStores();
             this.error = '';
           }
@@ -155,12 +149,11 @@ export class HomeComponent implements OnInit {
         error: error => {
           console.error('Error loading featured stores:', error);
           this.loading = false;
-          // Using dummy data instead of showing error
+          // Fall back to dummy data on error
           this.featuredStores = this.getDummyStores();
           this.error = '';
         }
       });
-    */
   }
 
   retryLoading(): void {

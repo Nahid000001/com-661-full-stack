@@ -33,9 +33,11 @@ export class StoreService {
     
     return this.http.get<StoreListResponse>(`${environment.apiUrl}/stores?page=${page}&limit=${limit}`, httpOptions)
       .pipe(
-        timeout(3000), // 3 second timeout instead of 15
+        timeout(15000), // 15 second timeout
         catchError((error: HttpErrorResponse) => {
           console.error('Error fetching stores:', error);
+          this.errorService.setError('Failed to load stores. Please try again later.');
+          
           // Return an empty response instead of throwing error
           return of({
             stores: [],
@@ -51,99 +53,26 @@ export class StoreService {
   getFeaturedStores(limit: number = 4): Observable<StoreListResponse> {
     console.log(`Fetching featured stores with limit=${limit}`);
     
-    // Create fallback store data
-    const fallbackStores = [
-      {
-        _id: 'dummy1',
-        company_name: 'Fashion Elite',
-        title: 'Premium Fashion Outlet',
-        description: 'Designer clothing and accessories for fashion enthusiasts. We offer the latest trends in high-end fashion.',
-        location: 'New York',
-        work_type: 'retail',
-        is_remote: false,
-        owner: 'admin',
-        average_rating: 4.7,
-        review_count: 42,
-        views: 250,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      },
-      {
-        _id: 'dummy2',
-        company_name: 'Urban Threads',
-        title: 'Contemporary Urban Wear',
-        description: 'Streetwear and casual fashion for the modern lifestyle. Featuring urban designs and comfortable everyday wear.',
-        location: 'Los Angeles',
-        work_type: 'retail',
-        is_remote: false,
-        owner: 'admin',
-        average_rating: 4.3,
-        review_count: 28,
-        views: 185,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      },
-      {
-        _id: 'dummy3',
-        company_name: 'Eco Apparel',
-        title: 'Sustainable Fashion',
-        description: 'Eco-friendly clothing made from sustainable materials. Making a positive impact on the planet with ethical fashion.',
-        location: 'Portland',
-        work_type: 'manufacturing',
-        is_remote: false,
-        owner: 'admin',
-        average_rating: 4.9,
-        review_count: 17,
-        views: 120,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      },
-      {
-        _id: 'dummy4',
-        company_name: 'Vintage Revival',
-        title: 'Classic Fashion Reimagined',
-        description: 'Vintage-inspired clothing with a modern twist. Rediscover timeless fashion trends updated for today.',
-        location: 'Chicago',
-        work_type: 'retail',
-        is_remote: false,
-        owner: 'admin',
-        average_rating: 4.5,
-        review_count: 35,
-        views: 210,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-    ];
-    
-    // Return dummy data directly instead of making API call
-    return of({
-      stores: fallbackStores,
-      total: fallbackStores.length,
-      page: 1,
-      limit: limit,
-      total_pages: 1
-    });
-    
-    /* Commented out actual API call for now
     return this.http.get<StoreListResponse>(`${environment.apiUrl}/stores?page=1&limit=${limit}&sort=rating`, {
       headers: new HttpHeaders({
         'Content-Type': 'application/json'
       })
     }).pipe(
-      timeout(3000), // 3 second timeout
+      timeout(10000), // 10 second timeout
+      retry(2), // Retry failed requests up to 2 times
       catchError(error => {
         console.error('Error in getFeaturedStores:', error);
-        // Return fallback store data instead of empty array
+        this.errorService.setError('Failed to load featured stores. Please try again later.');
+        // Return empty store list on error
         return of({
-          stores: fallbackStores,
-          total: fallbackStores.length,
+          stores: [],
+          total: 0,
           page: 1,
           limit: limit,
-          total_pages: 1
+          total_pages: 0
         } as StoreListResponse);
       })
     );
-    */
   }
 
   retryWithBackoff<T>(maxRetries: number = 3, initialDelay: number = 1000): (source: Observable<T>) => Observable<T> {
@@ -181,15 +110,14 @@ export class StoreService {
           let errorMsg = 'Failed to fetch store details';
           
           if (error.status === 0) {
-            // Skip showing connection error
-            return throwError(() => ({ 
-              status: error.status, 
-              message: ''
-            }));
+            errorMsg = 'Network error. Please check your connection.';
+          } else if (error.status === 404) {
+            errorMsg = 'Store not found.';
           } else if (error.error?.message) {
             errorMsg = error.error.message;
-            this.errorService.setError(errorMsg);
           }
+          
+          this.errorService.setError(errorMsg);
           
           return throwError(() => ({ 
             status: error.status, 
@@ -200,24 +128,24 @@ export class StoreService {
   }
 
   createStore(storeData: Partial<Store>): Observable<StoreCreateResponse> {
+    console.log('Creating new store:', storeData);
+    
     return this.http.post<StoreCreateResponse>(`${environment.apiUrl}/stores`, storeData)
       .pipe(
-        timeout(10000), // 10 second timeout
-        retry(2), // Retry up to 2 times on failure
+        timeout(15000),
         catchError((error: HttpErrorResponse) => {
           console.error('Error creating store:', error);
           let errorMsg = 'Failed to create store';
           
-          if (error.status === 0) {
-            // Skip showing connection error
-            return throwError(() => ({ 
-              status: error.status, 
-              message: ''
-            }));
+          if (error.status === 401) {
+            errorMsg = 'You must be logged in to create a store';
+          } else if (error.status === 403) {
+            errorMsg = 'You do not have permission to create a store';
           } else if (error.error?.message) {
             errorMsg = error.error.message;
-            this.errorService.setError(errorMsg);
           }
+          
+          this.errorService.setError(errorMsg);
           
           return throwError(() => ({ 
             status: error.status, 
@@ -228,24 +156,26 @@ export class StoreService {
   }
 
   updateStore(id: string, storeData: Partial<Store>): Observable<StoreUpdateResponse> {
+    console.log(`Updating store ${id}:`, storeData);
+    
     return this.http.put<StoreUpdateResponse>(`${environment.apiUrl}/stores/${id}`, storeData)
       .pipe(
-        timeout(10000), // 10 second timeout
-        retry(2), // Retry up to 2 times on failure
+        timeout(15000),
         catchError((error: HttpErrorResponse) => {
-          console.error(`Error updating store with ID ${id}:`, error);
+          console.error(`Error updating store ${id}:`, error);
           let errorMsg = 'Failed to update store';
           
-          if (error.status === 0) {
-            // Skip showing connection error
-            return throwError(() => ({ 
-              status: error.status, 
-              message: ''
-            }));
+          if (error.status === 401) {
+            errorMsg = 'You must be logged in to update a store';
+          } else if (error.status === 403) {
+            errorMsg = 'You do not have permission to update this store';
+          } else if (error.status === 404) {
+            errorMsg = 'Store not found';
           } else if (error.error?.message) {
             errorMsg = error.error.message;
-            this.errorService.setError(errorMsg);
           }
+          
+          this.errorService.setError(errorMsg);
           
           return throwError(() => ({ 
             status: error.status, 
@@ -256,24 +186,26 @@ export class StoreService {
   }
 
   deleteStore(id: string): Observable<StoreDeleteResponse> {
+    console.log(`Deleting store ${id}`);
+    
     return this.http.delete<StoreDeleteResponse>(`${environment.apiUrl}/stores/${id}`)
       .pipe(
-        timeout(10000), // 10 second timeout
-        retry(2), // Retry up to 2 times on failure
+        timeout(15000),
         catchError((error: HttpErrorResponse) => {
-          console.error(`Error deleting store with ID ${id}:`, error);
+          console.error(`Error deleting store ${id}:`, error);
           let errorMsg = 'Failed to delete store';
           
-          if (error.status === 0) {
-            // Skip showing connection error
-            return throwError(() => ({ 
-              status: error.status, 
-              message: ''
-            }));
+          if (error.status === 401) {
+            errorMsg = 'You must be logged in to delete a store';
+          } else if (error.status === 403) {
+            errorMsg = 'You do not have permission to delete this store';
+          } else if (error.status === 404) {
+            errorMsg = 'Store not found';
           } else if (error.error?.message) {
             errorMsg = error.error.message;
-            this.errorService.setError(errorMsg);
           }
+          
+          this.errorService.setError(errorMsg);
           
           return throwError(() => ({ 
             status: error.status, 
@@ -284,33 +216,20 @@ export class StoreService {
   }
 
   incrementStoreViews(storeId: string): Observable<any> {
-    return this.http.post<any>(`${environment.apiUrl}/stores/${storeId}/increment-views`, {});
+    return of(null); // This endpoint doesn't exist yet, will be implemented in future
   }
 
   getStoreReviews(storeId: string): Observable<any> {
+    console.log(`Fetching reviews for store ${storeId}`);
+    
     return this.http.get<any>(`${environment.apiUrl}/stores/${storeId}/reviews`)
       .pipe(
         timeout(10000),
-        retry(2),
+        retry(1),
         catchError((error: HttpErrorResponse) => {
           console.error(`Error fetching reviews for store ${storeId}:`, error);
-          let errorMsg = 'Failed to fetch store reviews';
-          
-          if (error.status === 0) {
-            // Skip showing connection error
-            return throwError(() => ({ 
-              status: error.status, 
-              message: ''
-            }));
-          } else if (error.error?.message) {
-            errorMsg = error.error.message;
-            this.errorService.setError(errorMsg);
-          }
-          
-          return throwError(() => ({ 
-            status: error.status, 
-            message: errorMsg
-          }));
+          // Don't show error message for reviews as it's not critical
+          return of([]);
         })
       );
   }
