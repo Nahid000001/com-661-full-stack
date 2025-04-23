@@ -1,107 +1,146 @@
 // src/app/components/store-detail/store-detail.component.ts
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { StoreService } from '../../services/store.service';
 import { ReviewService } from '../../services/review.service';
 import { AuthService } from '../../services/auth.service';
 import { ReviewListComponent } from '../review-list/review-list.component';
 import { ReviewFormComponent } from '../review-form/review-form.component';
-import { Router} from '@angular/router';
 
 @Component({
   selector: 'app-store-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReviewListComponent, ReviewFormComponent],
+  imports: [
+    CommonModule, 
+    ReactiveFormsModule, 
+    FormsModule,
+    ReviewListComponent,
+    ReviewFormComponent
+  ],
   templateUrl: './store-detail.component.html',
   styleUrls: ['./store-detail.component.scss']
 })
 export class StoreDetailComponent implements OnInit {
   storeId: string = '';
   store: any = null;
+  loading: boolean = true;
+  error: string = '';
   reviews: any[] = [];
-  loading = false;
-  error = '';
-  isLoggedIn = false;
-  isOwner = false;
-  isAdmin = false;
+  isLoggedIn: boolean = false;
+  isAdmin: boolean = false;
+  isOwner: boolean = false;
+  sortOption: string = 'newest';
+  currentImageIndex: number = 0;
   
-  // New properties for enhanced UI
-  currentImageIndex = 0;
-  sortOption = 'newest';
-  Math = Math; // Make Math available in the template
+  // Modal properties
+  showEditModal: boolean = false;
+  showDeleteModal: boolean = false;
+  editForm: FormGroup;
+  updating: boolean = false;
+  deleting: boolean = false;
   
-  // Store images for the gallery - in a real app, these would come from the API
+  // Store image placeholders
   storeImages = [
     'https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80',
     'https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80',
     'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80',
     'https://images.unsplash.com/photo-1542060748-10c28b62716f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80',
-    'https://images.unsplash.com/photo-1441986300917-64674bd600d8?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80'
   ];
-
+  
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private storeService: StoreService,
     private reviewService: ReviewService,
-    private authService: AuthService
-  ) { }
+    private authService: AuthService,
+    private fb: FormBuilder
+  ) {
+    this.editForm = this.fb.group({
+      company_name: ['', Validators.required],
+      location: ['', Validators.required],
+      work_type: ['RETAIL'],
+      title: [''],
+      description: ['', Validators.required]
+    });
+  }
+
+  // Access to Math library for templates
+  Math = Math;
 
   ngOnInit() {
-    this.route.paramMap.subscribe(params => {
-      const id = params.get('id');
-      if (id) {
-        this.storeId = id;
-        this.loadStoreDetails();
-        this.loadReviews();
-      }
-    });
+    this.storeId = this.route.snapshot.paramMap.get('id') || '';
     
-    this.isLoggedIn = this.authService.isLoggedIn();
-    
-    if (this.isLoggedIn) {
-      const user = this.authService.currentUserValue;
-      if (user) {
-        this.isAdmin = user?.role === 'admin';
-      }
+    if (this.storeId) {
+      this.loadStoreDetails();
+      this.checkUserPermissions();
+    } else {
+      this.error = 'Invalid store ID';
+      this.loading = false;
     }
   }
 
   loadStoreDetails() {
     this.loading = true;
+    this.error = '';
+    
     this.storeService.getStoreById(this.storeId)
       .subscribe({
-        next: data => {
+        next: (data) => {
           this.store = data;
-          
-          if (this.isLoggedIn) {
-            const user = this.authService.currentUserValue;
-            this.isOwner = !!user && user.username === this.store.owner;
-          }
-          
+          this.loadReviews();
           this.loading = false;
+          
+          // Increment store views
+          this.storeService.incrementStoreViews(this.storeId).subscribe();
         },
-        error: error => {
-          this.error = error.error?.message || 'Error loading store details';
+        error: (error) => {
+          console.error('Error loading store details:', error);
+          this.error = error.error?.message || 'Failed to load store details';
           this.loading = false;
         }
       });
   }
 
-  // Gallery functionality
-  getMainImage(): string {
-    return this.storeImages[this.currentImageIndex];
+  loadReviews() {
+    this.storeService.getStoreReviews(this.storeId)
+      .subscribe({
+        next: (reviews: any[]) => {
+          this.reviews = reviews;
+          this.sortReviews();
+        },
+        error: (error: any) => {
+          console.error('Error loading reviews:', error);
+        }
+      });
   }
 
-  setMainImage(index: number): void {
-    this.currentImageIndex = index;
+  checkUserPermissions() {
+    this.authService.currentUser.subscribe(user => {
+      this.isLoggedIn = !!user;
+      
+      if (user && user.token) {
+        const payload = this.authService.decodeToken(user.token);
+        const role = payload?.role || 'customer';
+        const userId = payload?.userId;
+        
+        this.isAdmin = role === 'admin';
+        // Check if user is the owner when store data is loaded
+        this.storeService.getStoreById(this.storeId).subscribe(store => {
+          this.isOwner = userId === store.owner || role === 'store_owner';
+        });
+      } else {
+        this.isAdmin = false;
+        this.isOwner = false;
+      }
+    });
   }
 
-  // Review sorting functionality
-  sortReviews(): void {
-    switch(this.sortOption) {
+  sortReviews() {
+    if (!this.reviews) return;
+    
+    switch (this.sortOption) {
       case 'newest':
         this.reviews.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         break;
@@ -117,83 +156,96 @@ export class StoreDetailComponent implements OnInit {
     }
   }
 
-  // Style utility
-  getTypeBadgeClass(type: string): string {
-    switch(type.toLowerCase()) {
-      case 'retail':
-        return 'bg-primary';
-      case 'online':
-        return 'bg-info';
-      case 'wholesale':
-        return 'bg-success';
-      case 'outlet':
-        return 'bg-warning';
-      case 'boutique':
-        return 'bg-danger';
-      default:
-        return 'bg-secondary';
+  onReviewAdded(review: any) {
+    this.reviews.unshift(review);
+    this.sortReviews();
+    
+    // Update store average rating
+    if (this.store) {
+      const totalRating = this.reviews.reduce((sum, review) => sum + review.rating, 0);
+      this.store.average_rating = totalRating / this.reviews.length;
+      this.store.review_count = this.reviews.length;
     }
   }
 
+  // Image gallery methods
+  getMainImage() {
+    return this.storeImages[this.currentImageIndex];
+  }
+
+  setMainImage(index: number) {
+    this.currentImageIndex = index;
+  }
+
+  // Mock email generation for the store
+  getEmailAddress() {
+    const companyNameNoSpaces = this.store.company_name.toLowerCase().replace(/\s+/g, '');
+    return `info&#64;${companyNameNoSpaces}.com`;
+  }
+
+  // Admin Methods
   updateStore() {
-    if (!this.store) return;
+    this.showEditModal = true;
     
-    // You'd implement a form or dialog here
-    const updatedData = {
+    // Populate form with store data
+    this.editForm.patchValue({
       company_name: this.store.company_name,
-      title: this.store.title,
-      description: this.store.description,
       location: this.store.location,
-      work_type: this.store.work_type
+      work_type: this.store.work_type || 'RETAIL',
+      title: this.store.title || '',
+      description: this.store.description || ''
+    });
+  }
+
+  cancelEdit() {
+    this.showEditModal = false;
+  }
+
+  submitEdit() {
+    if (this.editForm.invalid) return;
+    
+    this.updating = true;
+    const updatedStore = { 
+      ...this.editForm.value,
+      _id: this.storeId
     };
     
-    this.storeService.updateStore(this.storeId, updatedData)
+    this.storeService.updateStore(this.storeId, updatedStore)
       .subscribe({
-        next: () => {
-          this.loadStoreDetails();
+        next: (data) => {
+          this.store = data;
+          this.showEditModal = false;
+          this.updating = false;
         },
-        error: error => {
-          this.error = error.error?.message || 'Error updating store';
+        error: (error) => {
+          console.error('Error updating store:', error);
+          this.updating = false;
+          // Could show error message here
         }
       });
   }
 
   deleteStore() {
-    if (confirm('Are you sure you want to delete this store?')) {
-      this.storeService.deleteStore(this.storeId)
-        .subscribe({
-          next: () => {
-            this.router.navigate(['/stores']);
-          },
-          error: error => {
-            this.error = error.error?.message || 'Error deleting store';
-          }
-        });
-    }
+    this.showDeleteModal = true;
   }
 
-  loadReviews() {
-    this.reviewService.getStoreReviews(this.storeId)
+  cancelDelete() {
+    this.showDeleteModal = false;
+  }
+
+  confirmDelete() {
+    this.deleting = true;
+    
+    this.storeService.deleteStore(this.storeId)
       .subscribe({
-        next: data => {
-          this.reviews = data.reviews;
-          this.sortReviews(); // Apply default sorting
+        next: () => {
+          this.router.navigate(['/stores']);
         },
-        error: error => {
-          console.error('Error loading reviews', error);
+        error: (error) => {
+          console.error('Error deleting store:', error);
+          this.deleting = false;
+          // Could show error message here
         }
       });
-  }
-
-  onReviewAdded(review: any) {
-    this.loadReviews();
-  }
-
-  getEmailAddress(): string {
-    if (!this.store || !this.store.company_name) return 'contact@example.com';
-    
-    // Convert the store name to lowercase and replace spaces with dots
-    const storeName = this.store.company_name.toLowerCase().split(' ').join('.');
-    return `${storeName}@example.com`;
   }
 }

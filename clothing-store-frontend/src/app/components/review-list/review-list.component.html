@@ -1,82 +1,143 @@
 <!-- src/app/components/review-list/review-list.component.html -->
 <div class="reviews-list">
-    <div *ngIf="reviews.length === 0" class="no-reviews">
-      <p>No reviews yet. Be the first to review!</p>
+  <!-- Empty state when no reviews -->
+  <div *ngIf="reviews.length === 0" class="empty-reviews">
+    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+      <line x1="9" y1="9" x2="9.01" y2="9"></line>
+      <line x1="15" y1="9" x2="15.01" y2="9"></line>
+    </svg>
+    <p>No reviews yet. Be the first to review!</p>
+  </div>
+  
+  <!-- Error state -->
+  <div *ngIf="error" class="review-error">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12" y2="16"></line>
+    </svg>
+    <span>{{ error }}</span>
+  </div>
+  
+  <!-- Reviews -->
+  <div *ngFor="let review of reviews" class="review-card">
+    <!-- Review header section -->
+    <div class="review-header">
+      <div class="review-avatar">
+        {{ getInitials(review.userName) }}
+      </div>
+      <div class="review-info">
+        <div class="review-user">{{ review.userName }}</div>
+        <div class="review-date">{{ review.created_at | date:'mediumDate' }}</div>
+      </div>
+      <div class="review-rating">
+        <div class="stars">
+          <span class="star filled" *ngFor="let i of [].constructor(review.rating)"></span>
+          <span class="star" *ngFor="let i of [].constructor(5 - review.rating)"></span>
+        </div>
+        <div class="rating-value">{{ review.rating }}/5</div>
+      </div>
     </div>
     
-    <div *ngIf="error" class="alert alert-danger">
-      {{ error }}
+    <!-- Review content -->
+    <div *ngIf="editingReview !== review._id" class="review-content">
+      <p>{{ review.comment }}</p>
     </div>
     
-    <div *ngFor="let review of reviews" class="review-card">
-      <div class="review-header">
-        <div class="rating">
-          <span class="stars">
-            <span *ngFor="let _ of [].constructor(review.rating)">★</span>
-            <span *ngFor="let _ of [].constructor(5 - review.rating)">☆</span>
-          </span>
-          <span class="rating-value">{{ review.rating }}/5</span>
+    <!-- Edit form -->
+    <div *ngIf="editingReview === review._id" class="edit-form">
+      <form [formGroup]="editForm" (ngSubmit)="submitEdit(review._id)">
+        <div class="form-group">
+          <label for="rating">Rating (1-5)</label>
+          <div class="star-edit-rating">
+            <span 
+              class="star" 
+              *ngFor="let star of [1, 2, 3, 4, 5]" 
+              [class.filled]="star <= editForm.get('rating')?.value"
+              (click)="editForm.get('rating')?.setValue(star)">
+            </span>
+          </div>
         </div>
-        <div class="reviewer">{{ review.username }}</div>
-        <div class="review-date">{{ review.created_at | date }}</div>
-      </div>
-      
-      <div *ngIf="editingReview !== review._id" class="review-content">
-        <p>{{ review.comment }}</p>
-      </div>
-      
-      <!-- Edit Form -->
-      <div *ngIf="editingReview === review._id" class="edit-form">
-        <form [formGroup]="editForm" (ngSubmit)="submitEdit(review._id)">
-          <div class="form-group">
-            <label for="rating">Rating (1-5)</label>
-            <input type="number" formControlName="rating" class="form-control" min="1" max="5" />
-          </div>
-          <div class="form-group">
-            <label for="comment">Comment</label>
-            <textarea formControlName="comment" class="form-control" rows="3"></textarea>
-          </div>
-          <div class="form-actions">
-            <button type="submit" class="btn btn-sm btn-primary">Save</button>
-            <button type="button" class="btn btn-sm btn-secondary" (click)="cancelEdit()">Cancel</button>
-          </div>
-        </form>
-      </div>
-      
-      <!-- Review Actions -->
-      <div *ngIf="editingReview !== review._id" class="review-actions">
-        <button *ngIf="canEditReview(review)" class="btn btn-sm btn-outline-primary" (click)="startEdit(review)">
-          Edit
-        </button>
-        <button *ngIf="canDeleteReview(review)" class="btn btn-sm btn-outline-danger" (click)="deleteReview(review._id)">
-          Delete
-        </button>
-        <button *ngIf="canReplyToReview() && !review.reply" class="btn btn-sm btn-outline-secondary" (click)="startReply(review._id)">
-          Reply
-        </button>
-      </div>
-      
-      <!-- Reply Form -->
-      <div *ngIf="replyingTo === review._id" class="reply-form">
-        <form [formGroup]="replyForm" (ngSubmit)="submitReply(review._id)">
-          <div class="form-group">
-            <label for="reply">Your Reply</label>
-            <textarea formControlName="reply" class="form-control" rows="2"></textarea>
-          </div>
-          <div class="form-actions">
-            <button type="submit" class="btn btn-sm btn-primary">Submit Reply</button>
-            <button type="button" class="btn btn-sm btn-secondary" (click)="cancelReply()">Cancel</button>
-          </div>
-        </form>
-      </div>
-      
-      <!-- Owner/Admin Reply -->
-      <div *ngIf="review.reply" class="owner-reply">
-        <div class="reply-header">
-          <strong>Owner Reply:</strong>
-          <small>{{ review.reply_date | date }}</small>
+        <div class="form-group">
+          <label for="comment">Comment</label>
+          <textarea formControlName="comment" class="form-control" rows="3"></textarea>
         </div>
-        <p>{{ review.reply }}</p>
+        <div class="form-actions">
+          <button type="button" class="btn btn-outline-secondary" (click)="cancelEdit()">Cancel</button>
+          <button type="submit" class="btn btn-primary" [disabled]="editForm.invalid">Save</button>
+        </div>
+      </form>
+    </div>
+    
+    <!-- Review actions -->
+    <div *ngIf="editingReview !== review._id && !replyingTo" class="review-actions">
+      <button *ngIf="canEditReview(review)" class="btn-action edit" (click)="startEdit(review)">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+        </svg>
+        Edit
+      </button>
+      <button *ngIf="canDeleteReview(review)" class="btn-action delete" (click)="deleteReview(review._id)">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        Delete
+      </button>
+      <button *ngIf="canReplyToReview() && !review.reply" class="btn-action reply" (click)="startReply(review._id)">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+        </svg>
+        Reply
+      </button>
+    </div>
+    
+    <!-- Reply form -->
+    <div *ngIf="replyingTo === review._id" class="reply-form">
+      <form [formGroup]="replyForm" (ngSubmit)="submitReply(review._id)">
+        <div class="form-group">
+          <label for="reply">Your Reply as Owner</label>
+          <textarea formControlName="reply" class="form-control" rows="3" placeholder="Write your response to this review..."></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-outline-secondary" (click)="cancelReply()">Cancel</button>
+          <button type="submit" class="btn btn-primary" [disabled]="replyForm.invalid">Submit Reply</button>
+        </div>
+      </form>
+    </div>
+    
+    <!-- Owner reply -->
+    <div *ngIf="review.reply" class="owner-reply">
+      <div class="reply-header">
+        <div class="owner-label">Owner Response</div>
+        <div class="reply-date">{{ review.reply?.createdAt | date:'mediumDate' }}</div>
       </div>
+      <p>{{ review.reply?.text }}</p>
     </div>
   </div>
+  
+  <!-- Pagination controls -->
+  <div *ngIf="reviews.length > 0 && totalPages > 1" class="pagination">
+    <button 
+      class="page-btn" 
+      [disabled]="currentPage === 1" 
+      (click)="changePage(currentPage - 1)">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+    </button>
+    <div class="page-info">
+      Page {{ currentPage }} of {{ totalPages }}
+    </div>
+    <button 
+      class="page-btn" 
+      [disabled]="currentPage === totalPages" 
+      (click)="changePage(currentPage + 1)">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 18 15 12 9 6"></polyline>
+      </svg>
+    </button>
+  </div>
+</div>

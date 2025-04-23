@@ -86,6 +86,15 @@ export class HomeComponent implements OnInit {
     return rating;
   }
   
+  // Method to generate random dates for reviews
+  getRandomDate(): Date {
+    // Generate a random date between 1 and 30 days ago
+    const daysAgo = Math.floor(Math.random() * 30) + 1;
+    const date = new Date();
+    date.setDate(date.getDate() - daysAgo);
+    return date;
+  }
+  
   // New method to get store image based on store data
   getStoreImage(store: any): string {
     // If we had actual store images, we would use them here

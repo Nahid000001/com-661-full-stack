@@ -107,5 +107,14 @@ getUserRole(): string {
       })
     );
   }
+
+  // Check if the current user has a specific role
+  hasRole(role: string): boolean {
+    const user = this.currentUserValue;
+    if (!user || !user.token) return false;
+    
+    const payload = this.decodeToken(user.token);
+    return payload?.role === role;
+  }
 }
 

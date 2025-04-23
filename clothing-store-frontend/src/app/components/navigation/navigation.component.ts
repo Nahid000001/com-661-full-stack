@@ -1,5 +1,5 @@
 // src/app/components/navigation/navigation.component.ts
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
@@ -14,31 +14,68 @@ import { AuthService } from '../../services/auth.service';
 export class NavigationComponent implements OnInit {
   isLoggedIn = false;
   currentUser: any = null;
-  isAdmin = false;       // Add this property
-  isStoreOwner = false;  // Add this property
+  isAdmin = false;
+  isStoreOwner = false;
+  isMobileMenuOpen = false;
+  isUserDropdownOpen = false;
 
   constructor(private authService: AuthService) { }
 
-// In navigation.component.ts
-ngOnInit() {
-  this.authService.currentUser.subscribe(user => {
-    this.isLoggedIn = !!user;
-    this.currentUser = user;
-    
-    if (user && user.token) {
-      const payload = this.authService.decodeToken(user.token);
-      const role = payload?.role || 'customer';
+  ngOnInit() {
+    this.authService.currentUser.subscribe(user => {
+      this.isLoggedIn = !!user;
+      this.currentUser = user;
       
-      this.isAdmin = role === 'admin';
-      this.isStoreOwner = role === 'store_owner';
-    } else {
-      this.isAdmin = false;
-      this.isStoreOwner = false;
-    }
-  });
-}
+      if (user && user.token) {
+        const payload = this.authService.decodeToken(user.token);
+        const role = payload?.role || 'customer';
+        
+        this.isAdmin = role === 'admin';
+        this.isStoreOwner = role === 'store_owner';
+      } else {
+        this.isAdmin = false;
+        this.isStoreOwner = false;
+      }
+    });
+  }
 
   logout() {
     this.authService.logout().subscribe();
+    this.isUserDropdownOpen = false;
+  }
+
+  toggleMobileMenu() {
+    this.isMobileMenuOpen = !this.isMobileMenuOpen;
+    
+    // Close user dropdown if open
+    if (this.isMobileMenuOpen) {
+      this.isUserDropdownOpen = false;
+    }
+  }
+
+  toggleUserDropdown(event: Event) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isUserDropdownOpen = !this.isUserDropdownOpen;
+  }
+
+  getUserInitial(): string {
+    return this.currentUser?.username ? this.currentUser.username.charAt(0).toUpperCase() : 'U';
+  }
+
+  // Close dropdowns when clicking outside
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    
+    // Check if the click is outside the dropdown
+    if (this.isUserDropdownOpen && !target.closest('.dropdown')) {
+      this.isUserDropdownOpen = false;
+    }
+    
+    // Close mobile menu on outside click if in mobile view
+    if (window.innerWidth < 992 && this.isMobileMenuOpen && !target.closest('.navbar')) {
+      this.isMobileMenuOpen = false;
+    }
   }
 }

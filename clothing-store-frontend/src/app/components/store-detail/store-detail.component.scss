@@ -59,3 +59,547 @@
     margin-bottom: 1.5rem;
     color: #3f51b5;
   }
+
+// Store Detail Page Styles
+.store-detail-container {
+  padding: 2rem 0;
+}
+
+// Loading & Error States
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 0;
+  
+  .spinner {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--primary-color);
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+  }
+  
+  .loading-text {
+    color: var(--text-light);
+    font-size: 1.1rem;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.error-container {
+  display: flex;
+  justify-content: center;
+  padding: 3rem 0;
+  
+  .error-card {
+    max-width: 500px;
+    text-align: center;
+    background-color: white;
+    border-radius: var(--border-radius);
+    padding: 2rem;
+    box-shadow: var(--shadow-md);
+    
+    svg {
+      color: var(--error-color);
+      margin-bottom: 1rem;
+    }
+    
+    h2 {
+      margin-bottom: 1rem;
+      color: var(--error-color);
+    }
+    
+    p {
+      margin-bottom: 1.5rem;
+      color: var(--text-light);
+    }
+  }
+}
+
+// Back Navigation
+.back-navigation {
+  margin-bottom: 2rem;
+  
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    color: var(--text-color);
+    transition: all 0.2s ease;
+    
+    svg {
+      transition: transform 0.2s ease;
+    }
+    
+    &:hover {
+      color: var(--primary-color);
+      
+      svg {
+        transform: translateX(-3px);
+      }
+    }
+  }
+}
+
+// Store Header
+.store-header {
+  margin-bottom: 2rem;
+  
+  .store-title-container {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    
+    @media (max-width: 767px) {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .store-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin: 0;
+      color: var(--primary-dark);
+      
+      @media (max-width: 767px) {
+        font-size: 2rem;
+      }
+    }
+    
+    .store-rating {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      
+      .stars {
+        display: flex;
+        
+        .star {
+          position: relative;
+          display: inline-block;
+          width: 20px;
+          height: 20px;
+          color: #e0e0e0;
+          margin-right: 2px;
+          
+          &:before {
+            content: '★';
+            position: absolute;
+            font-size: 20px;
+            top: 0;
+            left: 0;
+          }
+          
+          &.filled {
+            color: #ffc107;
+          }
+          
+          &.half-filled {
+            color: #e0e0e0;
+            
+            &:after {
+              content: '★';
+              position: absolute;
+              font-size: 20px;
+              top: 0;
+              left: 0;
+              width: 50%;
+              overflow: hidden;
+              color: #ffc107;
+            }
+          }
+        }
+      }
+      
+      .rating-text {
+        font-size: 1rem;
+        color: var(--text-color);
+      }
+    }
+  }
+  
+  .store-badges {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    
+    .badge {
+      font-size: 0.8rem;
+      padding: 0.35rem 0.75rem;
+      font-weight: 500;
+      border-radius: 50px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      
+      &.store-type-badge {
+        background-color: var(--primary-light);
+        color: white;
+      }
+      
+      &.location-badge {
+        background-color: rgba(0, 0, 0, 0.05);
+        color: var(--text-color);
+      }
+    }
+  }
+}
+
+// Main Content Layout
+.store-main-content {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 2rem;
+  
+  @media (max-width: 991px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// Left Column: Store Info
+.store-info-column {
+  .store-gallery {
+    margin-bottom: 2rem;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    
+    .gallery-main {
+      width: 100%;
+      height: 350px;
+      overflow: hidden;
+      
+      .main-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+        
+        &:hover {
+          transform: scale(1.05);
+        }
+      }
+    }
+    
+    .gallery-thumbnails {
+      display: flex;
+      background-color: #f8f9fa;
+      overflow-x: auto;
+      
+      .thumbnail {
+        width: 80px;
+        height: 60px;
+        object-fit: cover;
+        cursor: pointer;
+        opacity: 0.7;
+        transition: all 0.2s ease;
+        
+        &:hover {
+          opacity: 0.9;
+        }
+        
+        &.active {
+          opacity: 1;
+          box-shadow: inset 0 -3px 0 var(--primary-color);
+        }
+      }
+    }
+  }
+  
+  .store-description-card {
+    background-color: white;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-sm);
+    
+    h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      color: var(--primary-dark);
+    }
+    
+    .store-slogan {
+      font-size: 1.1rem;
+      color: var(--text-color);
+      font-weight: 500;
+      margin-bottom: 1rem;
+      font-style: italic;
+    }
+    
+    .store-description {
+      color: var(--text-light);
+      line-height: 1.6;
+    }
+  }
+  
+  .reviews-section {
+    h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+      color: var(--primary-dark);
+    }
+    
+    .review-controls {
+      display: flex;
+      justify-content: flex-end;
+      margin: 1.5rem 0;
+      
+      .review-sort {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        
+        label {
+          font-size: 0.9rem;
+          color: var(--text-light);
+        }
+        
+        select {
+          padding: 0.25rem 0.5rem;
+          border: 1px solid var(--border-color);
+          border-radius: var(--border-radius);
+          font-size: 0.9rem;
+          color: var(--text-color);
+          background-color: white;
+        }
+      }
+    }
+  }
+}
+
+// Right Column: Sidebar
+.store-sidebar {
+  .sidebar-card {
+    background-color: white;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    
+    h3 {
+      font-size: 1.25rem;
+      margin-bottom: 1.25rem;
+      font-weight: 600;
+      color: var(--primary-dark);
+    }
+    
+    .hours-list, 
+    .contact-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      
+      li {
+        display: flex;
+        margin-bottom: 0.75rem;
+        color: var(--text-color);
+        
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+    }
+    
+    // Business Hours
+    .hours-list li {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px dashed var(--border-color);
+      padding-bottom: 0.5rem;
+      
+      .day {
+        font-weight: 500;
+      }
+      
+      .hours {
+        color: var(--text-light);
+      }
+    }
+    
+    // Contact Info
+    .contact-list li {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      
+      svg {
+        color: var(--primary-color);
+        flex-shrink: 0;
+      }
+      
+      span {
+        line-height: 1.4;
+      }
+    }
+    
+    // Store Analytics
+    &.store-analytics {
+      .analytics-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        
+        .analytic-item {
+          text-align: center;
+          padding: 1rem;
+          background-color: rgba(0, 0, 0, 0.02);
+          border-radius: var(--border-radius);
+          
+          .analytic-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 0.25rem;
+          }
+          
+          .analytic-label {
+            font-size: 0.9rem;
+            color: var(--text-light);
+          }
+        }
+      }
+    }
+    
+    // Admin Actions
+    &.admin-actions {
+      background-color: rgba(0, 0, 0, 0.02);
+      
+      .admin-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        
+        .btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          
+          svg {
+            transition: transform 0.2s ease;
+          }
+          
+          &:hover svg {
+            transform: translateY(-2px);
+          }
+        }
+      }
+    }
+  }
+}
+
+// Modal Styles
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-dialog {
+  width: 100%;
+  max-width: 600px;
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-lg);
+  animation: modal-in 0.3s ease;
+  
+  &.delete-dialog {
+    max-width: 450px;
+  }
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  
+  .modal-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--primary-dark);
+  }
+  
+  .modal-close {
+    background: none;
+    border: none;
+    padding: 0.25rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-light);
+    transition: all 0.2s ease;
+    
+    &:hover {
+      color: var(--primary-color);
+    }
+  }
+}
+
+.modal-body {
+  padding: 1.5rem;
+  
+  .delete-warning {
+    text-align: center;
+    
+    svg {
+      color: var(--error-color);
+      margin-bottom: 1rem;
+    }
+    
+    p {
+      color: var(--text-color);
+      margin-bottom: 0;
+    }
+  }
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border-color);
+  
+  button {
+    min-width: 120px;
+  }
+}

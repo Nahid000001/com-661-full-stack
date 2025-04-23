@@ -172,4 +172,32 @@ export class StoreService {
         })
       );
   }
+
+  incrementStoreViews(storeId: string): Observable<any> {
+    return this.http.post<any>(`${environment.apiUrl}/stores/${storeId}/increment-views`, {});
+  }
+
+  getStoreReviews(storeId: string): Observable<any> {
+    return this.http.get<any>(`${environment.apiUrl}/stores/${storeId}/reviews`)
+      .pipe(
+        timeout(10000),
+        retry(2),
+        catchError((error: HttpErrorResponse) => {
+          console.error(`Error fetching reviews for store ${storeId}:`, error);
+          let errorMsg = 'Failed to fetch store reviews';
+          
+          if (error.status === 0) {
+            errorMsg = 'Could not connect to the server. Please check your internet connection.';
+          } else if (error.error?.message) {
+            errorMsg = error.error.message;
+          }
+          
+          this.errorService.setError(errorMsg);
+          return throwError(() => ({ 
+            status: error.status, 
+            message: errorMsg
+          }));
+        })
+      );
+  }
 }

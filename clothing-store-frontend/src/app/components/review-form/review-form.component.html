@@ -1,45 +1,70 @@
 <!-- src/app/components/review-form/review-form.component.html -->
 <div class="review-form-container">
-    <h4>Leave a Review</h4>
+  <h4 class="form-title">Leave a Review</h4>
+  
+  <form [formGroup]="reviewForm" (ngSubmit)="onSubmit()">
+    <div class="form-group">
+      <label>Your Rating</label>
+      <div class="star-rating">
+        <div class="stars">
+          <span 
+            class="star" 
+            *ngFor="let star of [1, 2, 3, 4, 5]" 
+            [class.filled]="star <= hoverRating || star <= reviewForm.get('rating')?.value"
+            (mouseenter)="hoverRating = star"
+            (mouseleave)="hoverRating = 0"
+            (click)="setRating(star)">
+          </span>
+        </div>
+        <div class="rating-text" *ngIf="reviewForm.get('rating')?.value">
+          <span>{{ getRatingText(reviewForm.get('rating')?.value) }}</span>
+        </div>
+      </div>
+      <div *ngIf="submitted && f['rating'].errors" class="form-error">
+        <span *ngIf="f['rating'].errors['required']">Please select a rating</span>
+      </div>
+    </div>
     
-    <form [formGroup]="reviewForm" (ngSubmit)="onSubmit()">
-      <div class="form-group">
-        <label for="rating">Rating (1-5)</label>
-        <input 
-          type="number" 
-          formControlName="rating" 
-          class="form-control" 
-          min="1" 
-          max="5" 
-          [ngClass]="{ 'is-invalid': submitted && f['rating'].errors }" 
-        />
-        <div *ngIf="submitted && f['rating'].errors" class="invalid-feedback">
-          <div *ngIf="f['rating'].errors['required']">Rating is required</div>
-          <div *ngIf="f['rating'].errors['min'] || f['rating'].errors['max']">Rating must be between 1 and 5</div>
-        </div>
+    <div class="form-group">
+      <label for="comment">Your Review</label>
+      <textarea 
+        formControlName="comment" 
+        id="comment"
+        class="form-control" 
+        rows="4" 
+        placeholder="Share your experience with this store...">
+      </textarea>
+      <div *ngIf="submitted && f['comment'].errors" class="form-error">
+        <span *ngIf="f['comment'].errors['required']">Please write a review</span>
+        <span *ngIf="f['comment'].errors['minlength']">Review must be at least 10 characters</span>
       </div>
-      
-      <div class="form-group">
-        <label for="comment">Comment</label>
-        <textarea 
-          formControlName="comment" 
-          class="form-control" 
-          rows="3" 
-          [ngClass]="{ 'is-invalid': submitted && f['comment'].errors }"
-        ></textarea>
-        <div *ngIf="submitted && f['comment'].errors" class="invalid-feedback">
-          <div *ngIf="f['comment'].errors['required']">Comment is required</div>
-        </div>
-      </div>
-      
-      <div class="form-group">
-        <button type="submit" [disabled]="loading" class="btn btn-primary">
-          <span *ngIf="loading" class="spinner-border spinner-border-sm mr-1"></span>
-          Submit Review
-        </button>
-      </div>
-      
-      <div *ngIf="error" class="alert alert-danger mt-3">{{error}}</div>
-      <div *ngIf="success" class="alert alert-success mt-3">{{success}}</div>
-    </form>
-  </div>
+    </div>
+    
+    <div class="form-actions">
+      <button type="submit" [disabled]="loading" class="btn btn-primary">
+        <span *ngIf="loading" class="spinner"></span>
+        <svg *ngIf="!loading" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        Submit Review
+      </button>
+    </div>
+    
+    <div *ngIf="error" class="form-alert error">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12" y2="16"></line>
+      </svg>
+      <span>{{error}}</span>
+    </div>
+    
+    <div *ngIf="success" class="form-alert success">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      </svg>
+      <span>{{success}}</span>
+    </div>
+  </form>
+</div>

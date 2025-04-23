@@ -1,29 +1,58 @@
 .review-form-container {
-    background: #f5f5f5;
+    background-color: white;
+    border-radius: var(--border-radius);
     padding: 1.5rem;
-    border-radius: 8px;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-sm);
   }
   
-  h4 {
-    margin-top: 0;
-    margin-bottom: 1rem;
-    color: #3f51b5;
+  .form-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+    color: var(--primary-dark);
   }
   
   .form-group {
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
   }
   
   label {
     display: block;
-    margin-bottom: 0.5rem;
     font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: var(--text-color);
   }
   
   textarea.form-control {
     resize: vertical;
     min-height: 100px;
+  }
+  
+  .form-control {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    transition: all 0.2s ease;
+    
+    &:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px rgba(26, 35, 126, 0.2);
+      outline: none;
+    }
+    
+    &::placeholder {
+      color: #aaa;
+    }
+  }
+  
+  .form-error {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--error-color);
   }
   
   .btn-primary {
@@ -34,4 +63,99 @@
   .btn-primary:hover {
     background-color: #303f9f;
     border-color: #303f9f;
+  }
+  
+  // Star Rating
+  .star-rating {
+    margin-bottom: 0.75rem;
+    
+    .stars {
+      display: flex;
+      margin-bottom: 0.5rem;
+      
+      .star {
+        position: relative;
+        cursor: pointer;
+        width: 32px;
+        height: 32px;
+        color: #e0e0e0;
+        transition: all 0.2s ease;
+        
+        &:before {
+          content: '★';
+          position: absolute;
+          font-size: 32px;
+          top: 0;
+          left: 0;
+        }
+        
+        &:hover {
+          transform: scale(1.1);
+        }
+        
+        &.filled {
+          color: #ffc107;
+        }
+      }
+    }
+    
+    .rating-text {
+      font-size: 0.9rem;
+      color: var(--text-color);
+      font-weight: 500;
+    }
+  }
+  
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    
+    .btn {
+      min-width: 150px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      
+      .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.5);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    }
+  }
+  
+  .form-alert {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--border-radius);
+    font-size: 0.9rem;
+    
+    &.error {
+      background-color: rgba(244, 67, 54, 0.1);
+      color: var(--error-color);
+      
+      svg {
+        color: var(--error-color);
+      }
+    }
+    
+    &.success {
+      background-color: rgba(76, 175, 80, 0.1);
+      color: var(--success-color);
+      
+      svg {
+        color: var(--success-color);
+      }
+    }
   }

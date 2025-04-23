@@ -1,14 +1,19 @@
 <!-- src/app/components/navigation/navigation.component.html -->
-<nav class="navbar navbar-expand-lg navbar-light bg-light">
+<nav class="navbar">
   <div class="container">
-    <a class="navbar-brand" routerLink="/">QA Clothing Store</a>
+    <a class="navbar-brand" routerLink="/">
+      <span class="brand-text">QA Clothing</span>
+      <span class="brand-accent">Store</span>
+    </a>
     
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
+    <button class="navbar-toggler" type="button" (click)="toggleMobileMenu()" [attr.aria-expanded]="isMobileMenuOpen">
+      <span class="toggler-icon"></span>
+      <span class="toggler-icon"></span>
+      <span class="toggler-icon"></span>
     </button>
     
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav mr-auto">
+    <div class="navbar-collapse" [class.show]="isMobileMenuOpen">
+      <ul class="navbar-nav">
         <li class="nav-item">
           <a class="nav-link" routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Home</a>
         </li>
@@ -20,25 +25,42 @@
         </li>
       </ul>
       
-      <ul class="navbar-nav">
+      <ul class="navbar-nav auth-nav">
         <ng-container *ngIf="!isLoggedIn">
           <li class="nav-item">
-            <a class="nav-link" routerLink="/login" routerLinkActive="active">Login</a>
+            <a class="nav-link auth-link" routerLink="/login" routerLinkActive="active">Login</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" routerLink="/register" routerLinkActive="active">Register</a>
+            <a class="nav-link auth-link auth-accent" routerLink="/register" routerLinkActive="active">Register</a>
           </li>
         </ng-container>
         
         <ng-container *ngIf="isLoggedIn">
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-              {{ currentUser?.username }}
+            <a class="nav-link dropdown-toggle" (click)="toggleUserDropdown($event)" [attr.aria-expanded]="isUserDropdownOpen">
+              <div class="user-avatar">{{ getUserInitial() }}</div>
+              <span class="username">{{ currentUser?.username }}</span>
+              <svg class="dropdown-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
             </a>
-            <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-              <a class="dropdown-item" routerLink="/profile">Profile</a>
+            <div class="dropdown-menu" [class.show]="isUserDropdownOpen">
+              <a class="dropdown-item" routerLink="/profile">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                Profile
+              </a>
               <div class="dropdown-divider"></div>
-              <a class="dropdown-item" (click)="logout()" style="cursor: pointer;">Logout</a>
+              <a class="dropdown-item" (click)="logout()" role="button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                  <polyline points="16 17 21 12 16 7"></polyline>
+                  <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                Logout
+              </a>
             </div>
           </li>
         </ng-container>

@@ -1,77 +1,128 @@
 <!-- src/app/components/store-detail/store-detail.component.html -->
 <div class="store-detail-container">
+  <!-- Loading State -->
   <div *ngIf="loading" class="loading-container">
-    <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">Loading...</span>
+    <div class="spinner"></div>
+    <p class="loading-text">Loading store details...</p>
+  </div>
+  
+  <!-- Error State -->
+  <div *ngIf="error" class="error-container">
+    <div class="error-card">
+      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12" y2="16"></line>
+      </svg>
+      <h2>Error Loading Store</h2>
+      <p>{{ error }}</p>
+      <button class="btn btn-primary" (click)="loadStoreDetails()">Try Again</button>
     </div>
-    <p>Loading store details...</p>
   </div>
   
-  <div *ngIf="error" class="alert alert-danger">
-    <p>{{ error }}</p>
-    <button class="btn btn-sm btn-secondary" (click)="loadStoreDetails()">Try Again</button>
-  </div>
-  
+  <!-- Store Content -->
   <div *ngIf="store && !loading" class="store-content">
-    <!-- Back button -->
-    <div class="back-link">
-      <a routerLink="/stores" class="btn btn-outline-secondary">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-        Back to Stores
-      </a>
-    </div>
-
-    <!-- Store Header -->
-    <header class="store-header">
-      <div class="store-title-container">
-        <h1>{{ store.company_name }}</h1>
-        <div class="store-rating" *ngIf="store.average_rating">
-          <div class="stars">
-            <span *ngFor="let _ of [].constructor(Math.floor(store.average_rating))">★</span>
-            <span *ngFor="let _ of [].constructor(5 - Math.floor(store.average_rating))">☆</span>
-          </div>
-          <div class="rating-text">
-            <strong>{{ store.average_rating | number:'1.1-1' }}</strong>/5
-            <span *ngIf="store.review_count">({{ store.review_count }} {{ store.review_count === 1 ? 'review' : 'reviews' }})</span>
-          </div>
-        </div>
-      </div>
-      <div class="store-badges">
-        <span class="badge store-type-badge" [ngClass]="getTypeBadgeClass(store.work_type)">{{ store.work_type }}</span>
-        <span class="badge location-badge">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-            <circle cx="12" cy="10" r="3"></circle>
+    <div class="container">
+      <!-- Back button -->
+      <div class="back-navigation">
+        <a routerLink="/stores" class="back-link">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
-          {{ store.location }}
-        </span>
-      </div>
-    </header>
-
-    <div class="store-main-content">
-      <!-- Image Gallery -->
-      <div class="store-gallery">
-        <div class="gallery-main">
-          <img [src]="getMainImage()" alt="{{ store.company_name }}" class="main-image">
-        </div>
-        <div class="gallery-thumbnails">
-          <img *ngFor="let image of storeImages; let i = index" 
-               [src]="image" 
-               alt="Store image {{ i + 1 }}"
-               class="thumbnail"
-               [class.active]="i === currentImageIndex"
-               (click)="setMainImage(i)">
-        </div>
+          Back to Stores
+        </a>
       </div>
 
-      <!-- Store Info Section -->
-      <div class="store-info-section">
-        <h2>About {{ store.company_name }}</h2>
-        <div class="store-slogan">{{ store.title }}</div>
-        <div class="store-description">{{ store.description }}</div>
+      <!-- Store Header -->
+      <header class="store-header">
+        <div class="store-title-container">
+          <h1 class="store-title">{{ store.company_name }}</h1>
+          <div class="store-rating" *ngIf="store.average_rating">
+            <div class="stars">
+              <span class="star" *ngFor="let i of [0, 1, 2, 3, 4]" [class.filled]="i < Math.floor(store.average_rating)" [class.half-filled]="i === Math.floor(store.average_rating) && store.average_rating % 1 >= 0.5"></span>
+            </div>
+            <div class="rating-text">
+              <strong>{{ store.average_rating | number:'1.1-1' }}</strong>/5
+              <span *ngIf="store.review_count">({{ store.review_count }} {{ store.review_count === 1 ? 'review' : 'reviews' }})</span>
+            </div>
+          </div>
+        </div>
+        <div class="store-badges">
+          <span class="badge store-type-badge">{{ store.work_type || 'RETAIL' }}</span>
+          <span class="badge location-badge">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            {{ store.location }}
+          </span>
+        </div>
+      </header>
+
+      <div class="store-main-content">
+        <!-- Left Column: Store Info -->
+        <div class="store-info-column">
+          <!-- Image Gallery -->
+          <div class="store-gallery">
+            <div class="gallery-main">
+              <img [src]="getMainImage()" alt="{{ store.company_name }}" class="main-image">
+            </div>
+            <div class="gallery-thumbnails">
+              <img *ngFor="let image of storeImages; let i = index" 
+                  [src]="image" 
+                  alt="Store image {{ i + 1 }}"
+                  class="thumbnail"
+                  [class.active]="i === currentImageIndex"
+                  (click)="setMainImage(i)">
+            </div>
+          </div>
+
+          <!-- Store Description -->
+          <div class="store-description-card">
+            <h2>About {{ store.company_name }}</h2>
+            <div class="store-slogan" *ngIf="store.title">{{ store.title }}</div>
+            <div class="store-description">{{ store.description }}</div>
+          </div>
+          
+          <!-- Reviews Section -->
+          <div class="reviews-section">
+            <h2>Customer Reviews</h2>
+            
+            <!-- Review Form -->
+            <app-review-form 
+              *ngIf="isLoggedIn" 
+              [storeId]="storeId" 
+              (reviewAdded)="onReviewAdded($event)">
+            </app-review-form>
+            
+            <!-- Review sorting options -->
+            <div class="review-controls">
+              <div class="review-sort">
+                <label for="review-sort">Sort by:</label>
+                <select id="review-sort" [(ngModel)]="sortOption" (change)="sortReviews()">
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="highest">Highest Rating</option>
+                  <option value="lowest">Lowest Rating</option>
+                </select>
+              </div>
+            </div>
+            
+            <!-- Review List -->
+            <app-review-list 
+              [reviews]="reviews" 
+              [storeId]="storeId"
+              [isAdmin]="isAdmin"
+              [isOwner]="isOwner">
+            </app-review-list>
+          </div>
+        </div>
         
-        <div class="store-meta-info">
-          <div class="info-card business-hours">
+        <!-- Right Column: Sidebar -->
+        <div class="store-sidebar">
+          <!-- Store Business Info Card -->
+          <div class="sidebar-card business-hours">
             <h3>Business Hours</h3>
             <ul class="hours-list">
               <li><span class="day">Monday - Friday:</span> <span class="hours">9:00 AM - 8:00 PM</span></li>
@@ -80,7 +131,8 @@
             </ul>
           </div>
 
-          <div class="info-card contact-info">
+          <!-- Contact Info Card -->
+          <div class="sidebar-card contact-info">
             <h3>Contact Information</h3>
             <ul class="contact-list">
               <li>
@@ -105,68 +157,140 @@
               </li>
             </ul>
           </div>
-        </div>
 
-        <!-- Analytics for store owners -->
-        <div *ngIf="isOwner || isAdmin" class="store-analytics info-card">
-          <h3>Store Analytics</h3>
-          <div class="analytics-data">
-            <div class="analytic-item">
-              <div class="analytic-value">{{ store.views }}</div>
-              <div class="analytic-label">Total Views</div>
+          <!-- Analytics for store owners -->
+          <div *ngIf="isOwner || isAdmin" class="sidebar-card store-analytics">
+            <h3>Store Analytics</h3>
+            <div class="analytics-grid">
+              <div class="analytic-item">
+                <div class="analytic-value">{{ store.views || 0 }}</div>
+                <div class="analytic-label">Views</div>
+              </div>
+              <div class="analytic-item">
+                <div class="analytic-value">{{ store.average_rating || 0 | number:'1.1-1' }}</div>
+                <div class="analytic-label">Rating</div>
+              </div>
+              <div class="analytic-item">
+                <div class="analytic-value">{{ store.review_count || 0 }}</div>
+                <div class="analytic-label">Reviews</div>
+              </div>
+              <div class="analytic-item">
+                <div class="analytic-value">{{ store.branches?.length || 1 }}</div>
+                <div class="analytic-label">Branches</div>
+              </div>
             </div>
-            <div class="analytic-item">
-              <div class="analytic-value">{{ store.average_rating || 0 | number:'1.1-1' }}</div>
-              <div class="analytic-label">Average Rating</div>
-            </div>
-            <div class="analytic-item">
-              <div class="analytic-value">{{ store.review_count || 0 }}</div>
-              <div class="analytic-label">Reviews</div>
-            </div>
-            <div class="analytic-item">
-              <div class="analytic-value">{{ store.branches?.length || 1 }}</div>
-              <div class="analytic-label">Branches</div>
+          </div>
+
+          <!-- Store Owner Options -->
+          <div *ngIf="isAdmin || isOwner" class="sidebar-card admin-actions">
+            <h3>Admin Actions</h3>
+            <div class="admin-buttons">
+              <button class="btn btn-primary btn-block" (click)="updateStore()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                </svg>
+                Edit Store
+              </button>
+              <button class="btn btn-outline-danger btn-block" (click)="deleteStore()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  <line x1="10" y1="11" x2="10" y2="17"></line>
+                  <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+                Delete Store
+              </button>
             </div>
           </div>
         </div>
-
-        <!-- Store Owner Options -->
-        <div *ngIf="isAdmin || isOwner" class="admin-actions">
-          <button class="btn btn-primary" (click)="updateStore()">Edit Store</button>
-          <button class="btn btn-danger" (click)="deleteStore()">Delete Store</button>
-        </div>
       </div>
     </div>
+  </div>
+</div>
 
-    <!-- Reviews Section -->
-    <div class="reviews-section">
-      <h2>Customer Reviews</h2>
-      
-      <!-- Review Form -->
-      <app-review-form 
-        *ngIf="isLoggedIn" 
-        [storeId]="storeId" 
-        (reviewAdded)="onReviewAdded($event)">
-      </app-review-form>
-      
-      <!-- Review sorting options -->
-      <div class="review-sort-options">
-        <label for="review-sort">Sort by:</label>
-        <select id="review-sort" [(ngModel)]="sortOption" (change)="sortReviews()">
-          <option value="newest">Newest First</option>
-          <option value="oldest">Oldest First</option>
-          <option value="highest">Highest Rating</option>
-          <option value="lowest">Lowest Rating</option>
-        </select>
+<!-- Edit Store Modal -->
+<div *ngIf="showEditModal" class="modal-overlay">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">Edit Store</h2>
+        <button class="modal-close" (click)="cancelEdit()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
       </div>
-      
-      <!-- Review List -->
-      <app-review-list 
-        [reviews]="reviews" 
-        [storeId]="storeId"
-        [isAdmin]="isAdmin"
-        [isOwner]="isOwner">
-      </app-review-list>
+      <div class="modal-body">
+        <form [formGroup]="editForm" (ngSubmit)="submitEdit()">
+          <div class="form-group">
+            <label for="company_name">Company Name</label>
+            <input type="text" id="company_name" formControlName="company_name" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="location">Location</label>
+            <input type="text" id="location" formControlName="location" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="work_type">Type</label>
+            <select id="work_type" formControlName="work_type" class="form-control">
+              <option value="RETAIL">Retail</option>
+              <option value="WHOLESALE">Wholesale</option>
+              <option value="MANUFACTURER">Manufacturer</option>
+              <option value="BOUTIQUE">Boutique</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="title">Title/Slogan</label>
+            <input type="text" id="title" formControlName="title" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" formControlName="description" class="form-control" rows="4"></textarea>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="cancelEdit()">Cancel</button>
+            <button type="submit" class="btn btn-primary" [disabled]="editForm.invalid || updating">
+              <span *ngIf="updating" class="spinner-border spinner-border-sm mr-1"></span>
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div *ngIf="showDeleteModal" class="modal-overlay">
+  <div class="modal-dialog delete-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">Confirm Deletion</h2>
+        <button class="modal-close" (click)="cancelDelete()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="delete-warning">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          <p>Are you sure you want to delete <strong>{{ store?.company_name }}</strong>? This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="cancelDelete()">Cancel</button>
+          <button type="button" class="btn btn-danger" (click)="confirmDelete()" [disabled]="deleting">
+            <span *ngIf="deleting" class="spinner-border spinner-border-sm mr-1"></span>
+            Delete Store
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </div>

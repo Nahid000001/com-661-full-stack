@@ -1,9 +1,10 @@
 // src/app/components/review-list/review-list.component.ts
-import { Component, Input, OnChanges } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ReviewService } from '../../services/review.service';
 import { AuthService } from '../../services/auth.service';
+import { Review } from '../../models/review.model';
 
 @Component({
   selector: 'app-review-list',
@@ -12,152 +13,168 @@ import { AuthService } from '../../services/auth.service';
   templateUrl: './review-list.component.html',
   styleUrls: ['./review-list.component.scss']
 })
-export class ReviewListComponent implements OnChanges {
-  @Input() reviews: any[] = [];
+export class ReviewListComponent implements OnInit {
   @Input() storeId: string = '';
+  @Input() reviews: Review[] = [];
   @Input() isAdmin: boolean = false;
   @Input() isOwner: boolean = false;
+  @Output() reviewUpdated = new EventEmitter<boolean>();
   
-  replyForm!: FormGroup;
-  editForm!: FormGroup;
-  replyingTo: string | null = null;
+  error: string = '';
   editingReview: string | null = null;
-  error = '';
-  isLoggedIn = false;
-  currentUser: any = null;
-
+  replyingTo: string | null = null;
+  editForm: FormGroup;
+  replyForm: FormGroup;
+  
+  // Pagination properties
+  currentPage: number = 1;
+  totalPages: number = 1;
+  pageSize: number = 5;
+  
   constructor(
-    private formBuilder: FormBuilder,
     private reviewService: ReviewService,
-    private authService: AuthService
+    private authService: AuthService,
+    private fb: FormBuilder
   ) {
-    this.replyForm = this.formBuilder.group({
-      reply: ['', Validators.required]
+    this.editForm = this.fb.group({
+      rating: [null, [Validators.required, Validators.min(1), Validators.max(5)]],
+      comment: ['', [Validators.required, Validators.minLength(10)]]
     });
     
-    this.editForm = this.formBuilder.group({
-      rating: ['', [Validators.required, Validators.min(1), Validators.max(5)]],
-      comment: ['', Validators.required]
+    this.replyForm = this.fb.group({
+      reply: ['', [Validators.required, Validators.minLength(10)]]
     });
-    
-    this.isLoggedIn = this.authService.isLoggedIn();
-    if (this.isLoggedIn) {
-      this.currentUser = this.authService.currentUserValue;
+  }
+
+  ngOnInit(): void {
+    this.loadReviews();
+  }
+  
+  loadReviews(): void {
+    // Only load reviews from the service if no reviews were provided via @Input
+    if (this.reviews.length === 0) {
+      this.reviewService.getStoreReviews(this.storeId, this.currentPage, this.pageSize)
+        .subscribe(
+          (data: { reviews: Review[], total: number, totalPages?: number }) => {
+            this.reviews = data.reviews;
+            this.totalPages = data.totalPages || Math.ceil(data.total / this.pageSize);
+          },
+          (err: any) => {
+            this.error = 'Failed to load reviews. Please try again later.';
+            console.error(err);
+          }
+        );
     }
   }
-
-  ngOnChanges() {
-    // Reset forms when reviews change
-    this.cancelReply();
-    this.cancelEdit();
+  
+  canEditReview(review: Review): boolean {
+    const currentUser = this.authService.currentUserValue;
+    return currentUser && (currentUser.id === review.userId || this.isAdmin);
   }
-
-  startReply(reviewId: string) {
-    this.replyingTo = reviewId;
-    this.editingReview = null;
-    this.replyForm.reset();
+  
+  canDeleteReview(review: Review): boolean {
+    const currentUser = this.authService.currentUserValue;
+    return currentUser && (currentUser.id === review.userId || this.isAdmin);
   }
-
-  cancelReply() {
-    this.replyingTo = null;
-    this.replyForm.reset();
+  
+  canReplyToReview(): boolean {
+    const currentUser = this.authService.currentUserValue;
+    return currentUser && this.isOwner;
   }
-
-  submitReply(reviewId: string) {
-    if (this.replyForm.invalid) {
-      return;
-    }
-
-    const reply = this.replyForm.get('reply')?.value;
-    
-    this.reviewService.replyToReview(this.storeId, reviewId, reply)
-      .subscribe({
-        next: () => {
-          // Refresh reviews after reply
-          this.refreshReviews();
-          this.cancelReply();
-        },
-        error: error => {
-          this.error = error.error.message || 'Error submitting reply';
-        }
-      });
-  }
-
-  startEdit(review: any) {
+  
+  startEdit(review: Review): void {
     this.editingReview = review._id;
-    this.replyingTo = null;
     this.editForm.patchValue({
       rating: review.rating,
       comment: review.comment
     });
   }
-
-  cancelEdit() {
+  
+  cancelEdit(): void {
     this.editingReview = null;
     this.editForm.reset();
   }
-
-  submitEdit(reviewId: string) {
-    if (this.editForm.invalid) {
-      return;
-    }
-
-    const updatedReview = {
-      rating: this.editForm.get('rating')?.value,
-      comment: this.editForm.get('comment')?.value
-    };
+  
+  submitEdit(reviewId: string): void {
+    if (this.editForm.invalid) return;
     
-    this.reviewService.editReview(this.storeId, reviewId, updatedReview)
-      .subscribe({
-        next: () => {
-          this.refreshReviews();
-          this.cancelEdit();
+    this.reviewService.editReview(this.storeId, reviewId, this.editForm.value)
+      .subscribe(
+        () => {
+          this.editingReview = null;
+          this.loadReviews();
+          this.reviewUpdated.emit(true);
         },
-        error: error => {
-          this.error = error.error.message || 'Error updating review';
+        (err: any) => {
+          this.error = 'Failed to update review. Please try again.';
+          console.error(err);
         }
-      });
+      );
   }
-
-  deleteReview(reviewId: string) {
+  
+  deleteReview(reviewId: string): void {
     if (confirm('Are you sure you want to delete this review?')) {
       this.reviewService.deleteReview(this.storeId, reviewId)
-        .subscribe({
-          next: () => {
-            this.refreshReviews();
+        .subscribe(
+          () => {
+            this.loadReviews();
+            this.reviewUpdated.emit(true);
           },
-          error: error => {
-            this.error = error.error.message || 'Error deleting review';
+          (err: any) => {
+            this.error = 'Failed to delete review. Please try again.';
+            console.error(err);
           }
-        });
+        );
     }
   }
-
-  refreshReviews() {
-    this.reviewService.getStoreReviews(this.storeId)
-      .subscribe({
-        next: data => {
-          this.reviews = data.reviews;
+  
+  startReply(reviewId: string): void {
+    this.replyingTo = reviewId;
+    const review = this.reviews.find(r => r._id === reviewId);
+    if (review && review.reply) {
+      this.replyForm.patchValue({ reply: review.reply });
+    } else {
+      this.replyForm.reset();
+    }
+  }
+  
+  cancelReply(): void {
+    this.replyingTo = null;
+    this.replyForm.reset();
+  }
+  
+  submitReply(reviewId: string): void {
+    if (this.replyForm.invalid) return;
+    
+    this.reviewService.replyToReview(this.storeId, reviewId, this.replyForm.value.reply)
+      .subscribe(
+        () => {
+          this.replyingTo = null;
+          this.loadReviews();
+          this.reviewUpdated.emit(true);
         },
-        error: error => {
-          this.error = error.error.message || 'Error refreshing reviews';
+        (err: any) => {
+          this.error = 'Failed to submit reply. Please try again.';
+          console.error(err);
         }
-      });
+      );
   }
-
-  canEditReview(review: any): boolean {
-    return this.isLoggedIn && 
-           this.currentUser && 
-           this.currentUser.username === review.username;
+  
+  getInitials(userName: string): string {
+    if (!userName) return '';
+    
+    return userName
+      .split(' ')
+      .map(name => name.charAt(0))
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
   }
-
-  canDeleteReview(review: any): boolean {
-    return this.isLoggedIn && 
-           (this.isAdmin || this.isOwner);
-  }
-
-  canReplyToReview(): boolean {
-    return this.isLoggedIn && 
-           (this.isAdmin || this.isOwner);
+  
+  changePage(page: number): void {
+    if (page < 1 || page > this.totalPages) return;
+    
+    this.currentPage = page;
+    this.loadReviews();
   }
 }
