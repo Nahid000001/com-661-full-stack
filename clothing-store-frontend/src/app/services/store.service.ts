@@ -1,32 +1,175 @@
 // src/app/services/store.service.ts
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, throwError, of } from 'rxjs';
+import { catchError, timeout, retry, delay, concatMap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
+import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
+import { ErrorService } from './error.service';
+import { 
+  Store, 
+  StoreListResponse, 
+  StoreCreateResponse, 
+  StoreUpdateResponse, 
+  StoreDeleteResponse 
+} from '../interfaces/store.interface';
 
 @Injectable({
   providedIn: 'root'
 })
 export class StoreService {
-  constructor(private http: HttpClient) { }
+  constructor(
+    private http: HttpClient,
+    private errorService: ErrorService
+  ) { }
 
-  getAllStores(page: number = 1, limit: number = 10): Observable<any> {
-    return this.http.get(`${environment.apiUrl}/stores?page=${page}&limit=${limit}`);
+  getAllStores(page: number = 1, limit: number = 10): Observable<StoreListResponse> {
+    const httpOptions = {
+      headers: new HttpHeaders({
+        'Content-Type': 'application/json'
+      })
+    };
+    
+    return this.http.get<StoreListResponse>(`${environment.apiUrl}/stores?page=${page}&limit=${limit}`, httpOptions)
+      .pipe(
+        timeout(15000), // 15 second timeout
+        retry(3), // Retry up to 3 times on failure
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error fetching stores:', error);
+          let errorMsg = 'Failed to fetch stores';
+          
+          if (error.status === 0) {
+            errorMsg = 'Could not connect to the server. Please check your internet connection and ensure the server is running.';
+          } else if (error.error?.message) {
+            errorMsg = error.error.message;
+          }
+          
+          this.errorService.setError(errorMsg);
+          return throwError(() => ({ 
+            status: error.status, 
+            message: errorMsg
+          }));
+        })
+      );
   }
 
-  getStoreById(id: string): Observable<any> {
-    return this.http.get(`${environment.apiUrl}/stores/${id}`);
+  retryWithBackoff<T>(maxRetries: number = 3, initialDelay: number = 1000): (source: Observable<T>) => Observable<T> {
+    return (source: Observable<T>) => {
+      return source.pipe(
+        concatMap((value, i) => of(value).pipe(
+          // On success, just return the value
+          catchError((error, caught) => {
+            // If we've reached the max number of retries, throw the error
+            if (i >= maxRetries) {
+              return throwError(() => error);
+            }
+            
+            console.log(`Attempt ${i + 1} failed, retrying in ${initialDelay * Math.pow(2, i)}ms`);
+            
+            // Retry after a delay, exponentially increasing with each attempt
+            return of(value).pipe(
+              delay(initialDelay * Math.pow(2, i)),
+              concatMap(() => caught)
+            );
+          })
+        ))
+      );
+    };
   }
 
-  createStore(storeData: any): Observable<any> {
-    return this.http.post(`${environment.apiUrl}/stores`, storeData);
+  getStoreById(id: string): Observable<Store> {
+    console.log(`Fetching store with ID: ${id}`);
+    return this.http.get<Store>(`${environment.apiUrl}/stores/${id}`)
+      .pipe(
+        timeout(10000), // 10 second timeout
+        this.retryWithBackoff(3), // Retry with exponential backoff
+        catchError((error: HttpErrorResponse) => {
+          console.error(`Error fetching store with ID ${id}:`, error);
+          let errorMsg = 'Failed to fetch store details';
+          
+          if (error.status === 0) {
+            errorMsg = 'Could not connect to the server. Please check your internet connection and ensure the server is running.';
+          } else if (error.error?.message) {
+            errorMsg = error.error.message;
+          }
+          
+          this.errorService.setError(errorMsg);
+          return throwError(() => ({ 
+            status: error.status, 
+            message: errorMsg
+          }));
+        })
+      );
   }
 
-  updateStore(id: string, storeData: any): Observable<any> {
-    return this.http.put(`${environment.apiUrl}/stores/${id}`, storeData);
+  createStore(storeData: Partial<Store>): Observable<StoreCreateResponse> {
+    return this.http.post<StoreCreateResponse>(`${environment.apiUrl}/stores`, storeData)
+      .pipe(
+        timeout(10000), // 10 second timeout
+        retry(2), // Retry up to 2 times on failure
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error creating store:', error);
+          let errorMsg = 'Failed to create store';
+          
+          if (error.status === 0) {
+            errorMsg = 'Could not connect to the server. Please check your internet connection and ensure the server is running.';
+          } else if (error.error?.message) {
+            errorMsg = error.error.message;
+          }
+          
+          this.errorService.setError(errorMsg);
+          return throwError(() => ({ 
+            status: error.status, 
+            message: errorMsg
+          }));
+        })
+      );
   }
 
-  deleteStore(id: string): Observable<any> {
-    return this.http.delete(`${environment.apiUrl}/stores/${id}`);
+  updateStore(id: string, storeData: Partial<Store>): Observable<StoreUpdateResponse> {
+    return this.http.put<StoreUpdateResponse>(`${environment.apiUrl}/stores/${id}`, storeData)
+      .pipe(
+        timeout(10000), // 10 second timeout
+        retry(2), // Retry up to 2 times on failure
+        catchError((error: HttpErrorResponse) => {
+          console.error(`Error updating store with ID ${id}:`, error);
+          let errorMsg = 'Failed to update store';
+          
+          if (error.status === 0) {
+            errorMsg = 'Could not connect to the server. Please check your internet connection and ensure the server is running.';
+          } else if (error.error?.message) {
+            errorMsg = error.error.message;
+          }
+          
+          this.errorService.setError(errorMsg);
+          return throwError(() => ({ 
+            status: error.status, 
+            message: errorMsg
+          }));
+        })
+      );
+  }
+
+  deleteStore(id: string): Observable<StoreDeleteResponse> {
+    return this.http.delete<StoreDeleteResponse>(`${environment.apiUrl}/stores/${id}`)
+      .pipe(
+        timeout(10000), // 10 second timeout
+        retry(2), // Retry up to 2 times on failure
+        catchError((error: HttpErrorResponse) => {
+          console.error(`Error deleting store with ID ${id}:`, error);
+          let errorMsg = 'Failed to delete store';
+          
+          if (error.status === 0) {
+            errorMsg = 'Could not connect to the server. Please check your internet connection and ensure the server is running.';
+          } else if (error.error?.message) {
+            errorMsg = error.error.message;
+          }
+          
+          this.errorService.setError(errorMsg);
+          return throwError(() => ({ 
+            status: error.status, 
+            message: errorMsg
+          }));
+        })
+      );
   }
 }

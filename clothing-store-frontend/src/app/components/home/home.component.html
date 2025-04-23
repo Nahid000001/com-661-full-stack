@@ -1,50 +1,146 @@
 <!-- src/app/components/home/home.component.html -->
 <div class="home-container">
-    <section class="hero">
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="container">
       <div class="hero-content">
-        <h1>Welcome to QA Clothing Store</h1>
-        <p>Discover the best clothing stores and share your experiences</p>
-        <a routerLink="/stores" class="btn btn-primary btn-lg">Browse Stores</a>
+        <h1 class="hero-title">Discover Your Perfect <span class="text-accent">Style</span></h1>
+        <p class="hero-subtitle">Find the best clothing stores and share your experiences with the community</p>
+        <div class="hero-cta">
+          <a routerLink="/stores" class="btn btn-primary btn-lg">Browse Stores</a>
+          <a routerLink="/register" class="btn btn-outline-primary btn-lg">Join Community</a>
+        </div>
       </div>
-    </section>
+      <div class="hero-image">
+        <img src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80" alt="Fashion clothing store" class="hero-img">
+      </div>
+    </div>
+  </section>
   
-    <section class="featured-stores">
-      <h2>Featured Stores</h2>
+  <!-- Featured Stores Section -->
+  <section class="section featured-section">
+    <div class="container">
+      <div class="section-title">
+        <h2>Featured Stores</h2>
+        <p class="section-subtitle">Explore top-rated stores handpicked for you</p>
+      </div>
       
-      <div *ngIf="loading" class="text-center">
-        <p>Loading featured stores...</p>
+      <div *ngIf="loading" class="loading-container">
+        <div class="spinner"></div>
+        <p>Discovering great stores for you...</p>
       </div>
       
       <div *ngIf="error" class="alert alert-danger">
-        {{ error }}
+        <p>{{ error }}</p>
+        <button class="btn btn-sm btn-secondary" (click)="retryLoading()">Try Again</button>
       </div>
       
       <div *ngIf="!loading && !error" class="store-grid">
         <div *ngFor="let store of featuredStores" class="store-card">
-          <h3>{{ store.company_name }}</h3>
-          <p class="store-type">{{ store.title }}</p>
-          <p class="store-location">{{ store.location }}</p>
-          <a [routerLink]="['/stores', store._id]" class="btn btn-outline-primary">View Details</a>
+          <div class="store-card-image" [style.background-image]="'url(' + getStoreImage(store) + ')'">
+            <div class="store-rating-badge" *ngIf="store.average_rating || getRandomRating()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+              </svg>
+              <span>{{ store.average_rating || getRandomRating() }}</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="store-badge retail">{{ store.work_type || 'RETAIL' }}</div>
+            <h3 class="store-name">{{ store.company_name }}</h3>
+            <p class="store-description">{{ truncateText(store.description || 'Quality clothing store offering a great selection of products and excellent customer service.', 120) }}</p>
+            
+            <div class="store-meta">
+              <span class="store-location">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                  <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+                {{ store.location }}
+              </span>
+              <span class="store-reviews" *ngIf="store.review_count">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                {{ store.review_count || 0 }} {{ (store.review_count === 1) ? 'Review' : 'Reviews' }}
+              </span>
+            </div>
+            
+            <div class="card-actions">
+              <a [routerLink]="['/stores', store._id]" class="btn btn-primary">VIEW DETAILS</a>
+            </div>
+          </div>
         </div>
       </div>
-    </section>
+      
+      <div *ngIf="!loading && !error && featuredStores.length === 0" class="empty-state">
+        <p>No featured stores available at the moment.</p>
+        <a routerLink="/stores" class="btn btn-primary">View All Stores</a>
+      </div>
+    </div>
+  </section>
   
-    <section class="about-us">
-      <h2>About Our Platform</h2>
-      <p>QA Clothing Store is a platform that connects customers with clothing stores. Browse stores, read reviews, and share your experiences with the community.</p>
-      <div class="features">
-        <div class="feature">
-          <h3>Find Stores</h3>
-          <p>Discover clothing stores in your area.</p>
+  <!-- About Section -->
+  <section class="section about-section">
+    <div class="container">
+      <div class="section-title">
+        <h2>Why Choose Us</h2>
+        <p class="section-subtitle">The ultimate clothing store discovery platform</p>
+      </div>
+      
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon discover-icon"></div>
+          <h3>Discover Stores</h3>
+          <p>Find the best clothing stores in your area with detailed information and customer reviews</p>
         </div>
-        <div class="feature">
+        
+        <div class="feature-card">
+          <div class="feature-icon review-icon"></div>
           <h3>Read Reviews</h3>
-          <p>Make informed decisions based on other customers' experiences.</p>
+          <p>Make informed decisions based on honest reviews from other fashion enthusiasts</p>
         </div>
-        <div class="feature">
+        
+        <div class="feature-card">
+          <div class="feature-icon share-icon"></div>
           <h3>Share Feedback</h3>
-          <p>Help others by sharing your honest reviews.</p>
+          <p>Help others discover great stores by sharing your personal shopping experiences</p>
         </div>
       </div>
-    </section>
-  </div>
+    </div>
+  </section>
+  
+  <!-- Latest Reviews Section -->
+  <section class="section reviews-section">
+    <div class="container">
+      <div class="section-title">
+        <h2>Latest Reviews</h2>
+        <p class="section-subtitle">See what our community is saying</p>
+      </div>
+      
+      <div class="review-cards">
+        <div class="review-card" *ngFor="let i of [1, 2, 3]">
+          <div class="review-header">
+            <div class="reviewer-avatar"></div>
+            <div class="reviewer-info">
+              <h4 class="reviewer-name">User {{ i }}</h4>
+              <div class="review-rating">
+                <i class="star-icon filled" *ngFor="let star of [1, 2, 3, 4, 5]"></i>
+              </div>
+            </div>
+          </div>
+          <p class="review-text">
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam in odio at nisi facilisis scelerisque.
+          </p>
+          <p class="review-store">
+            <strong>Store:</strong> Sample Store {{ i }}
+          </p>
+        </div>
+      </div>
+      
+      <div class="text-center mt-4">
+        <a routerLink="/stores" class="btn btn-outline-primary">Read More Reviews</a>
+      </div>
+    </div>
+  </section>
+</div>

@@ -1,48 +1,172 @@
 <!-- src/app/components/store-detail/store-detail.component.html -->
-<div class="store-detail">
-    <div *ngIf="loading" class="text-center">
-      <p>Loading store details...</p>
+<div class="store-detail-container">
+  <div *ngIf="loading" class="loading-container">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
     </div>
-    
-    <div *ngIf="error" class="alert alert-danger">
-      {{ error }}
+    <p>Loading store details...</p>
+  </div>
+  
+  <div *ngIf="error" class="alert alert-danger">
+    <p>{{ error }}</p>
+    <button class="btn btn-sm btn-secondary" (click)="loadStoreDetails()">Try Again</button>
+  </div>
+  
+  <div *ngIf="store && !loading" class="store-content">
+    <!-- Back button -->
+    <div class="back-link">
+      <a routerLink="/stores" class="btn btn-outline-secondary">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        Back to Stores
+      </a>
     </div>
-    
-    <div *ngIf="store && !loading">
-      <div class="store-header">
-        <h2>{{ store.company_name }}</h2>
-        <div class="store-badges">
-          <span class="badge bg-info">{{ store.work_type }}</span>
-          <span class="badge bg-secondary">{{ store.location }}</span>
+
+    <!-- Store Header -->
+    <header class="store-header">
+      <div class="store-title-container">
+        <h1>{{ store.company_name }}</h1>
+        <div class="store-rating" *ngIf="store.average_rating">
+          <div class="stars">
+            <span *ngFor="let _ of [].constructor(Math.floor(store.average_rating))">★</span>
+            <span *ngFor="let _ of [].constructor(5 - Math.floor(store.average_rating))">☆</span>
+          </div>
+          <div class="rating-text">
+            <strong>{{ store.average_rating | number:'1.1-1' }}</strong>/5
+            <span *ngIf="store.review_count">({{ store.review_count }} {{ store.review_count === 1 ? 'review' : 'reviews' }})</span>
+          </div>
         </div>
       </div>
-      
-      <div class="store-info">
-        <p class="store-title">{{ store.title }}</p>
-        <p class="store-description">{{ store.description }}</p>
-        <p><small>Views: {{ store.views }}</small></p>
+      <div class="store-badges">
+        <span class="badge store-type-badge" [ngClass]="getTypeBadgeClass(store.work_type)">{{ store.work_type }}</span>
+        <span class="badge location-badge">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+          </svg>
+          {{ store.location }}
+        </span>
+      </div>
+    </header>
+
+    <div class="store-main-content">
+      <!-- Image Gallery -->
+      <div class="store-gallery">
+        <div class="gallery-main">
+          <img [src]="getMainImage()" alt="{{ store.company_name }}" class="main-image">
+        </div>
+        <div class="gallery-thumbnails">
+          <img *ngFor="let image of storeImages; let i = index" 
+               [src]="image" 
+               alt="Store image {{ i + 1 }}"
+               class="thumbnail"
+               [class.active]="i === currentImageIndex"
+               (click)="setMainImage(i)">
+        </div>
+      </div>
+
+      <!-- Store Info Section -->
+      <div class="store-info-section">
+        <h2>About {{ store.company_name }}</h2>
+        <div class="store-slogan">{{ store.title }}</div>
+        <div class="store-description">{{ store.description }}</div>
         
+        <div class="store-meta-info">
+          <div class="info-card business-hours">
+            <h3>Business Hours</h3>
+            <ul class="hours-list">
+              <li><span class="day">Monday - Friday:</span> <span class="hours">9:00 AM - 8:00 PM</span></li>
+              <li><span class="day">Saturday:</span> <span class="hours">10:00 AM - 6:00 PM</span></li>
+              <li><span class="day">Sunday:</span> <span class="hours">Closed</span></li>
+            </ul>
+          </div>
+
+          <div class="info-card contact-info">
+            <h3>Contact Information</h3>
+            <ul class="contact-list">
+              <li>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                </svg>
+                <span>+1 (555) 123-4567</span>
+              </li>
+              <li>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                  <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+                <span>{{ getEmailAddress() }}</span>
+              </li>
+              <li>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                  <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+                <span>{{ store.location }}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Analytics for store owners -->
+        <div *ngIf="isOwner || isAdmin" class="store-analytics info-card">
+          <h3>Store Analytics</h3>
+          <div class="analytics-data">
+            <div class="analytic-item">
+              <div class="analytic-value">{{ store.views }}</div>
+              <div class="analytic-label">Total Views</div>
+            </div>
+            <div class="analytic-item">
+              <div class="analytic-value">{{ store.average_rating || 0 | number:'1.1-1' }}</div>
+              <div class="analytic-label">Average Rating</div>
+            </div>
+            <div class="analytic-item">
+              <div class="analytic-value">{{ store.review_count || 0 }}</div>
+              <div class="analytic-label">Reviews</div>
+            </div>
+            <div class="analytic-item">
+              <div class="analytic-value">{{ store.branches?.length || 1 }}</div>
+              <div class="analytic-label">Branches</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Store Owner Options -->
         <div *ngIf="isAdmin || isOwner" class="admin-actions">
-          <button class="btn btn-primary">Edit Store</button>
-          <button class="btn btn-danger">Delete Store</button>
+          <button class="btn btn-primary" (click)="updateStore()">Edit Store</button>
+          <button class="btn btn-danger" (click)="deleteStore()">Delete Store</button>
         </div>
       </div>
+    </div>
+
+    <!-- Reviews Section -->
+    <div class="reviews-section">
+      <h2>Customer Reviews</h2>
       
-      <div class="reviews-section">
-        <h3>Customer Reviews</h3>
-        
-        <app-review-form 
-          *ngIf="isLoggedIn" 
-          [storeId]="storeId" 
-          (reviewAdded)="onReviewAdded($event)">
-        </app-review-form>
-        
-        <app-review-list 
-          [reviews]="reviews" 
-          [storeId]="storeId"
-          [isAdmin]="isAdmin"
-          [isOwner]="isOwner">
-        </app-review-list>
+      <!-- Review Form -->
+      <app-review-form 
+        *ngIf="isLoggedIn" 
+        [storeId]="storeId" 
+        (reviewAdded)="onReviewAdded($event)">
+      </app-review-form>
+      
+      <!-- Review sorting options -->
+      <div class="review-sort-options">
+        <label for="review-sort">Sort by:</label>
+        <select id="review-sort" [(ngModel)]="sortOption" (change)="sortReviews()">
+          <option value="newest">Newest First</option>
+          <option value="oldest">Oldest First</option>
+          <option value="highest">Highest Rating</option>
+          <option value="lowest">Lowest Rating</option>
+        </select>
       </div>
+      
+      <!-- Review List -->
+      <app-review-list 
+        [reviews]="reviews" 
+        [storeId]="storeId"
+        [isAdmin]="isAdmin"
+        [isOwner]="isOwner">
+      </app-review-list>
     </div>
   </div>
+</div>

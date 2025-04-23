@@ -1,0 +1,7 @@
+<!-- src/app/components/loading-spinner/loading-spinner.component.html -->
+<div class="spinner-container" [class.overlay]="overlay">
+  <div class="spinner-content">
+    <div class="spinner" [class]="size"></div>
+    <span *ngIf="message" class="message">{{ message }}</span>
+  </div>
+</div> 

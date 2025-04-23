@@ -1,16 +1,101 @@
 <!-- src/app/app.component.html -->
 <div class="app-container">
+  <!-- Navigation Bar -->
   <app-navigation></app-navigation>
   
-  <main>
+  <!-- Server Status Indicator -->
+  <div *ngIf="serverStatus === 'offline'" class="server-status-indicator offline">
     <div class="container">
-      <router-outlet></router-outlet>
+      <div class="status-message">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12" y2="16"></line>
+        </svg>
+        Server connection lost. Some features may not be available.
+        <button (click)="retryConnection()" class="retry-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+            <path d="M21 3v5h-5"></path>
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+            <path d="M8 16H3v5"></path>
+          </svg>
+          Retry Connection
+        </button>
+      </div>
     </div>
+  </div>
+  
+  <!-- Global Alert Component -->
+  <app-alert></app-alert>
+  
+  <!-- Global Loading Indicator -->
+  <div *ngIf="isLoading" class="global-loading-overlay">
+    <app-loading-spinner message="Loading..." [overlay]="true"></app-loading-spinner>
+  </div>
+  
+  <!-- Main Content Area -->
+  <main class="main-content">
+    <router-outlet></router-outlet>
   </main>
   
-  <footer>
+  <!-- Admin Tools (only visible for admin route) -->
+  <div *ngIf="isAdminRoute" class="admin-tools">
     <div class="container">
-      <p>&copy; 2025 QA Clothing Store - Built with Angular and Flask</p>
+      <div class="admin-panel">
+        <h3 class="admin-panel-title">API Status Panel</h3>
+        <div class="admin-panel-content">
+          <app-health-check></app-health-check>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; {{ currentYear }} Clothing Store Reviews. All rights reserved.</p>
     </div>
   </footer>
 </div>
+
+<style>
+.server-status-indicator {
+  padding: 0.5rem 0;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #fff;
+  position: relative;
+  z-index: 10;
+}
+
+.server-status-indicator.offline {
+  background-color: #dc3545;
+}
+
+.status-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.retry-btn {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 4px;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.8rem;
+  margin-left: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  transition: all 0.2s;
+}
+
+.retry-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+</style>

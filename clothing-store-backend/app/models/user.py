@@ -1,7 +1,8 @@
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token
 from app import mongo
-from datetime import timedelta
+from datetime import timedelta, datetime
+from bson.objectid import ObjectId
 
 def create_user(username, password, role="customer"):
     """Create a new user."""
@@ -45,3 +46,41 @@ def update_password(username, new_password):
 def create_reset_token(username):
     """Create a password reset token."""
     return create_access_token(identity=username, expires_delta=timedelta(minutes=15))
+
+class User:
+    """User model for authentication"""
+    
+    @staticmethod
+    def create_user(email, password, first_name, last_name, username):
+        """Create a new user"""
+        user = {
+            "email": email,
+            "username": username,
+            "password": generate_password_hash(password),
+            "first_name": first_name,
+            "last_name": last_name,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        result = mongo.db.users.insert_one(user)
+        return str(result.inserted_id)
+    
+    @staticmethod
+    def get_user_by_email(email):
+        """Get a user by email"""
+        return mongo.db.users.find_one({"email": email})
+    
+    @staticmethod
+    def get_user_by_username(username):
+        """Get a user by username"""
+        return mongo.db.users.find_one({"username": username})
+    
+    @staticmethod
+    def get_user_by_id(user_id):
+        """Get a user by ID"""
+        return mongo.db.users.find_one({"_id": ObjectId(user_id)})
+    
+    @staticmethod
+    def check_password(user, password):
+        """Check if password is valid"""
+        return check_password_hash(user["password"], password)

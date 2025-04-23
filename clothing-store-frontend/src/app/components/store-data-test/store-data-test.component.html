@@ -1,0 +1,26 @@
+<!-- src/app/components/store-data-test/store-data-test.component.html -->
+<div class="store-data-test-container">
+  <h3>Store Data Test</h3>
+  
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <span>Loading store data...</span>
+  </div>
+  
+  <div *ngIf="error" class="error-state">
+    <p>{{ error }}</p>
+    <button (click)="retry()" class="retry-btn">Retry</button>
+  </div>
+  
+  <div *ngIf="!loading && !error" class="result-state">
+    <p *ngIf="stores.length === 0">No stores found in the database.</p>
+    
+    <div *ngIf="stores.length > 0" class="success-message">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      </svg>
+      <span>Successfully loaded {{ stores.length }} stores from the database.</span>
+    </div>
+  </div>
+</div> 

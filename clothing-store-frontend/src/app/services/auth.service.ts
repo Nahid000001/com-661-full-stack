@@ -52,7 +52,7 @@ getUserRole(): string {
         if (response && response.access_token) {
           // Store user details and jwt token in local storage
           const token = response.access_token;
-          const user = { username, token };
+          const user = { username, token, refreshToken: response.refresh_token };
           localStorage.setItem('currentUser', JSON.stringify(user));
           this.currentUserSubject.next(user);
         }
@@ -74,6 +74,38 @@ getUserRole(): string {
 
   isLoggedIn() {
     return this.currentUserValue !== null;
+  }
+  
+  refreshToken() {
+    const currentUser = this.currentUserValue;
+    if (!currentUser || !currentUser.refreshToken) {
+      // If no refresh token is available, log the user out
+      this.logout();
+      return new Observable(observer => observer.error('No refresh token available'));
+    }
+    
+    return this.http.post<any>(`${environment.apiUrl}/refresh-token`, {
+      refresh_token: currentUser.refreshToken
+    }).pipe(
+      map(response => {
+        if (response && response.access_token) {
+          // Update stored user details with new tokens
+          const updatedUser = {
+            ...currentUser,
+            token: response.access_token,
+            refreshToken: response.refresh_token || currentUser.refreshToken
+          };
+          localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+          this.currentUserSubject.next(updatedUser);
+          
+          return {
+            accessToken: response.access_token,
+            refreshToken: response.refresh_token
+          };
+        }
+        return response;
+      })
+    );
   }
 }
 
