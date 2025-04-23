@@ -6,6 +6,11 @@ export interface Review {
   rating: number;
   comment: string;
   images?: string[];
+  replies?: {
+    user: string;
+    text: string;
+    created_at: Date;
+  }[];
   reply?: {
     text: string;
     createdAt: Date;

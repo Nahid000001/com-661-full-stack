@@ -81,6 +81,11 @@ def login():
     )
     refresh_token = create_refresh_token(identity=str(user['_id']))
     
+    # Store the refresh token jti in Redis with user id for verification
+    jti = get_jwt()["jti"] if request.headers.get('Authorization') else None
+    if jti:
+        redis_client.set(f"refresh_token:{jti}", str(user['_id']), ex=int(REFRESH_TOKEN_EXPIRES.total_seconds()))
+    
     return jsonify({
         "access_token": access_token,
         "refresh_token": refresh_token,
@@ -97,14 +102,29 @@ def login():
 @jwt_required(refresh=True)
 @limiter.limit("20 per minute")  # Rate limit token refreshing
 def refresh():
-    """Refresh access token"""
+    """Refresh access token with token rotation for security"""
     identity = get_jwt_identity()
+    jwt_data = get_jwt()
+    jti = jwt_data["jti"]
+    
+    # Create new tokens
     access_token = create_access_token(
         identity=identity,
         fresh=False
     )
+    new_refresh_token = create_refresh_token(identity=identity)
     
-    return jsonify({"access_token": access_token}), 200
+    # Invalidate the current refresh token by adding to blocklist
+    redis_client.set(jti, "", ex=int(REFRESH_TOKEN_EXPIRES.total_seconds()))
+    
+    # Store the new refresh token jti in Redis with user id
+    new_jti = get_jwt()["jti"]
+    redis_client.set(f"refresh_token:{new_jti}", identity, ex=int(REFRESH_TOKEN_EXPIRES.total_seconds()))
+    
+    return jsonify({
+        "access_token": access_token,
+        "refresh_token": new_refresh_token
+    }), 200
 
 @auth_bp.route('/logout', methods=['DELETE'])
 @jwt_required()

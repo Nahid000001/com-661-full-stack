@@ -12,11 +12,21 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1.5rem;
+
+    @media (max-width: 576px) {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
   }
   
   .store-badges {
     display: flex;
     gap: 0.5rem;
+
+    @media (max-width: 576px) {
+      flex-wrap: wrap;
+    }
   }
   
   .badge {
@@ -38,6 +48,10 @@
     font-size: 1.2rem;
     font-weight: 500;
     margin-bottom: 0.5rem;
+
+    @media (max-width: 576px) {
+      font-size: 1.1rem;
+    }
   }
   
   .store-description {
@@ -49,6 +63,10 @@
     display: flex;
     gap: 1rem;
     margin-bottom: 2rem;
+
+    @media (max-width: 576px) {
+      flex-direction: column;
+    }
   }
   
   .reviews-section {
@@ -63,6 +81,10 @@
 // Store Detail Page Styles
 .store-detail-container {
   padding: 2rem 0;
+
+  @media (max-width: 576px) {
+    padding: 1rem 0;
+  }
 }
 
 // Loading & Error States
@@ -174,6 +196,10 @@
       @media (max-width: 767px) {
         font-size: 2rem;
       }
+
+      @media (max-width: 576px) {
+        font-size: 1.75rem;
+      }
     }
     
     .store-rating {
@@ -248,254 +274,113 @@
       }
       
       &.location-badge {
-        background-color: rgba(0, 0, 0, 0.05);
-        color: var(--text-color);
+        background-color: var(--secondary-light);
+        color: white;
       }
     }
   }
 }
 
-// Main Content Layout
+// Store Main Content Layout
 .store-main-content {
   display: grid;
   grid-template-columns: 1fr 350px;
   gap: 2rem;
+  align-items: start;
   
-  @media (max-width: 991px) {
+  @media (max-width: 992px) {
+    grid-template-columns: 1fr 300px;
+  }
+  
+  @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
 }
 
-// Left Column: Store Info
-.store-info-column {
-  .store-gallery {
-    margin-bottom: 2rem;
+// Store Gallery
+.store-gallery {
+  margin-bottom: 2rem;
+  
+  .gallery-main {
     border-radius: var(--border-radius);
     overflow: hidden;
+    margin-bottom: 0.75rem;
     box-shadow: var(--shadow-sm);
+    height: 350px;
     
-    .gallery-main {
+    @media (max-width: 768px) {
+      height: 300px;
+    }
+
+    @media (max-width: 576px) {
+      height: 250px;
+    }
+    
+    img.main-image {
       width: 100%;
-      height: 350px;
-      overflow: hidden;
-      
-      .main-image {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        transition: transform 0.3s ease;
-        
-        &:hover {
-          transform: scale(1.05);
-        }
-      }
-    }
-    
-    .gallery-thumbnails {
-      display: flex;
-      background-color: #f8f9fa;
-      overflow-x: auto;
-      
-      .thumbnail {
-        width: 80px;
-        height: 60px;
-        object-fit: cover;
-        cursor: pointer;
-        opacity: 0.7;
-        transition: all 0.2s ease;
-        
-        &:hover {
-          opacity: 0.9;
-        }
-        
-        &.active {
-          opacity: 1;
-          box-shadow: inset 0 -3px 0 var(--primary-color);
-        }
-      }
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
     }
   }
   
-  .store-description-card {
-    background-color: white;
-    border-radius: var(--border-radius);
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-    box-shadow: var(--shadow-sm);
+  .gallery-thumbnails {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
     
-    h2 {
-      font-size: 1.5rem;
-      margin-bottom: 1rem;
-      color: var(--primary-dark);
+    @media (max-width: 576px) {
+      grid-template-columns: repeat(2, 1fr);
     }
     
-    .store-slogan {
-      font-size: 1.1rem;
-      color: var(--text-color);
-      font-weight: 500;
-      margin-bottom: 1rem;
-      font-style: italic;
-    }
-    
-    .store-description {
-      color: var(--text-light);
-      line-height: 1.6;
-    }
-  }
-  
-  .reviews-section {
-    h2 {
-      font-size: 1.5rem;
-      margin-bottom: 1.5rem;
-      color: var(--primary-dark);
-    }
-    
-    .review-controls {
-      display: flex;
-      justify-content: flex-end;
-      margin: 1.5rem 0;
+    img.thumbnail {
+      width: 100%;
+      aspect-ratio: 1/1;
+      object-fit: cover;
+      border-radius: var(--border-radius-sm);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 2px solid transparent;
       
-      .review-sort {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        
-        label {
-          font-size: 0.9rem;
-          color: var(--text-light);
-        }
-        
-        select {
-          padding: 0.25rem 0.5rem;
-          border: 1px solid var(--border-color);
-          border-radius: var(--border-radius);
-          font-size: 0.9rem;
-          color: var(--text-color);
-          background-color: white;
-        }
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-sm);
+      }
+      
+      &.active {
+        border-color: var(--primary-color);
       }
     }
   }
 }
 
-// Right Column: Sidebar
+// Sidebar Cards
 .store-sidebar {
-  .sidebar-card {
-    background-color: white;
-    border-radius: var(--border-radius);
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    box-shadow: var(--shadow-sm);
-    
-    h3 {
-      font-size: 1.25rem;
-      margin-bottom: 1.25rem;
-      font-weight: 600;
-      color: var(--primary-dark);
-    }
-    
-    .hours-list, 
-    .contact-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      
-      li {
-        display: flex;
-        margin-bottom: 0.75rem;
-        color: var(--text-color);
-        
-        &:last-child {
-          margin-bottom: 0;
-        }
-      }
-    }
-    
-    // Business Hours
-    .hours-list li {
-      display: flex;
-      justify-content: space-between;
-      border-bottom: 1px dashed var(--border-color);
-      padding-bottom: 0.5rem;
-      
-      .day {
-        font-weight: 500;
-      }
-      
-      .hours {
-        color: var(--text-light);
-      }
-    }
-    
-    // Contact Info
-    .contact-list li {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      
-      svg {
-        color: var(--primary-color);
-        flex-shrink: 0;
-      }
-      
-      span {
-        line-height: 1.4;
-      }
-    }
-    
-    // Store Analytics
-    &.store-analytics {
-      .analytics-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
-        
-        .analytic-item {
-          text-align: center;
-          padding: 1rem;
-          background-color: rgba(0, 0, 0, 0.02);
-          border-radius: var(--border-radius);
-          
-          .analytic-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--primary-color);
-            margin-bottom: 0.25rem;
-          }
-          
-          .analytic-label {
-            font-size: 0.9rem;
-            color: var(--text-light);
-          }
-        }
-      }
-    }
-    
-    // Admin Actions
-    &.admin-actions {
-      background-color: rgba(0, 0, 0, 0.02);
-      
-      .admin-buttons {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-        
-        .btn {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.5rem;
-          
-          svg {
-            transition: transform 0.2s ease;
-          }
-          
-          &:hover svg {
-            transform: translateY(-2px);
-          }
-        }
-      }
-    }
+  @media (max-width: 768px) {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
+
+  @media (max-width: 576px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sidebar-card {
+  background-color: white;
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 1.5rem;
+  
+  h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+    color: var(--primary-dark);
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-light);
   }
 }
 

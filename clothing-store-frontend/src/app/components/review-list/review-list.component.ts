@@ -131,9 +131,16 @@ export class ReviewListComponent implements OnInit {
   startReply(reviewId: string): void {
     this.replyingTo = reviewId;
     const review = this.reviews.find(r => r._id === reviewId);
-    if (review && review.reply) {
-      this.replyForm.patchValue({ reply: review.reply });
-    } else {
+    
+    // Check if the review has existing replies
+    if (review && review.replies && review.replies.length > 0) {
+      this.replyForm.patchValue({ reply: review.replies[0].text });
+    } 
+    // Fallback to old reply structure if present
+    else if (review && review.reply) {
+      this.replyForm.patchValue({ reply: review.reply.text });
+    } 
+    else {
       this.replyForm.reset();
     }
   }

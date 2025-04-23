@@ -86,7 +86,7 @@
         </svg>
         Delete
       </button>
-      <button *ngIf="canReplyToReview() && !review.reply" class="btn-action reply" (click)="startReply(review._id)">
+      <button *ngIf="canReplyToReview() && !review.reply && !(review.replies && review.replies.length > 0)" class="btn-action reply" (click)="startReply(review._id)">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
         </svg>
@@ -109,12 +109,12 @@
     </div>
     
     <!-- Owner reply -->
-    <div *ngIf="review.reply" class="owner-reply">
+    <div *ngIf="review.replies && review.replies.length > 0" class="owner-reply">
       <div class="reply-header">
         <div class="owner-label">Owner Response</div>
-        <div class="reply-date">{{ review.reply?.createdAt | date:'mediumDate' }}</div>
+        <div class="reply-date">{{ review.replies[0].created_at | date:'mediumDate' }}</div>
       </div>
-      <p>{{ review.reply?.text }}</p>
+      <p>{{ review.replies[0].text }}</p>
     </div>
   </div>
   
