@@ -38,13 +38,25 @@ def create_app(config_name='default'):
     redis_client = redis.from_url(redis_url)
     
     # Configure CORS to allow requests from Angular app
-    CORS(app, resources={
-        r"/*": {
-            "origins": ["http://localhost:4200", "http://127.0.0.1:4200", "*"],
-            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization", "Access-Control-Allow-Origin"]
-        }
-    })
+    app.config['CORS_HEADERS'] = 'Content-Type,Authorization'
+    app.config['CORS_SUPPORTS_CREDENTIALS'] = True
+    app.config['CORS_AUTOMATIC_OPTIONS'] = True
+    app.config['CORS_EXPOSE_HEADERS'] = 'Content-Type,Authorization'
+    
+    # Use CORS with proper configuration to handle preflight requests correctly
+    CORS(app, 
+         origins=["http://localhost:4200", "http://127.0.0.1:4200"],
+         allow_headers=["Content-Type", "Authorization"],
+         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+         supports_credentials=True,
+         max_age=3600)
+    
+    # Handle OPTIONS requests explicitly to avoid redirects
+    @app.route('/', defaults={'path': ''}, methods=['OPTIONS'])
+    @app.route('/<path:path>', methods=['OPTIONS'])
+    def options_handler(path):
+        response = app.make_default_options_response()
+        return response
     
     # Initialize extensions
     mongo.init_app(app)

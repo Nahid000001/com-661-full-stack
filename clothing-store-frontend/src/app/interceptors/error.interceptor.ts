@@ -15,6 +15,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
       let errorMessage = 'An unknown error occurred';
+      let shouldShowError = true;
       
       if (error.error instanceof ErrorEvent) {
         // Client-side error
@@ -23,7 +24,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         // Server-side error
         switch (error.status) {
           case 0:
-            errorMessage = 'Could not connect to the server. Please check your internet connection';
+            // Connection error - don't show any message
+            errorMessage = '';
+            shouldShowError = false;
             break;
           case 400:
             errorMessage = 'Bad request. Please check your input';
@@ -55,7 +58,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         }
         
         // Use server provided message if available
-        if (error.error) {
+        if (error.error && shouldShowError) {
           if (error.error.message) {
             errorMessage = error.error.message;
           } else if (error.error.msg) {
@@ -66,8 +69,8 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         }
       }
       
-      // Skip error display for certain URLs (e.g., health check)
-      if (!req.url.includes('/health')) {
+      // Skip error display for certain URLs (e.g., health check) or when shouldShowError is false
+      if (!req.url.includes('/health') && shouldShowError && errorMessage) {
         // Display the error using the error service
         errorService.setError(errorMessage);
       }

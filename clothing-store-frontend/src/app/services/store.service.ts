@@ -56,12 +56,16 @@ export class StoreService {
           let errorMsg = 'Failed to fetch stores';
           
           if (error.status === 0) {
-            errorMsg = 'Could not connect to the server. Please check your internet connection and ensure the server is running.';
+            // Skip showing connection error
+            return throwError(() => ({ 
+              status: error.status, 
+              message: ''
+            }));
           } else if (error.error?.message) {
             errorMsg = error.error.message;
+            this.errorService.setError(errorMsg);
           }
           
-          this.errorService.setError(errorMsg);
           return throwError(() => ({ 
             status: error.status, 
             message: errorMsg
@@ -129,12 +133,16 @@ export class StoreService {
           let errorMsg = 'Failed to fetch store details';
           
           if (error.status === 0) {
-            errorMsg = 'Could not connect to the server. Please check your internet connection and ensure the server is running.';
+            // Skip showing connection error
+            return throwError(() => ({ 
+              status: error.status, 
+              message: ''
+            }));
           } else if (error.error?.message) {
             errorMsg = error.error.message;
+            this.errorService.setError(errorMsg);
           }
           
-          this.errorService.setError(errorMsg);
           return throwError(() => ({ 
             status: error.status, 
             message: errorMsg
@@ -153,12 +161,16 @@ export class StoreService {
           let errorMsg = 'Failed to create store';
           
           if (error.status === 0) {
-            errorMsg = 'Could not connect to the server. Please check your internet connection and ensure the server is running.';
+            // Skip showing connection error
+            return throwError(() => ({ 
+              status: error.status, 
+              message: ''
+            }));
           } else if (error.error?.message) {
             errorMsg = error.error.message;
+            this.errorService.setError(errorMsg);
           }
           
-          this.errorService.setError(errorMsg);
           return throwError(() => ({ 
             status: error.status, 
             message: errorMsg
@@ -177,12 +189,16 @@ export class StoreService {
           let errorMsg = 'Failed to update store';
           
           if (error.status === 0) {
-            errorMsg = 'Could not connect to the server. Please check your internet connection and ensure the server is running.';
+            // Skip showing connection error
+            return throwError(() => ({ 
+              status: error.status, 
+              message: ''
+            }));
           } else if (error.error?.message) {
             errorMsg = error.error.message;
+            this.errorService.setError(errorMsg);
           }
           
-          this.errorService.setError(errorMsg);
           return throwError(() => ({ 
             status: error.status, 
             message: errorMsg
@@ -201,12 +217,16 @@ export class StoreService {
           let errorMsg = 'Failed to delete store';
           
           if (error.status === 0) {
-            errorMsg = 'Could not connect to the server. Please check your internet connection and ensure the server is running.';
+            // Skip showing connection error
+            return throwError(() => ({ 
+              status: error.status, 
+              message: ''
+            }));
           } else if (error.error?.message) {
             errorMsg = error.error.message;
+            this.errorService.setError(errorMsg);
           }
           
-          this.errorService.setError(errorMsg);
           return throwError(() => ({ 
             status: error.status, 
             message: errorMsg
@@ -229,12 +249,16 @@ export class StoreService {
           let errorMsg = 'Failed to fetch store reviews';
           
           if (error.status === 0) {
-            errorMsg = 'Could not connect to the server. Please check your internet connection.';
+            // Skip showing connection error
+            return throwError(() => ({ 
+              status: error.status, 
+              message: ''
+            }));
           } else if (error.error?.message) {
             errorMsg = error.error.message;
+            this.errorService.setError(errorMsg);
           }
           
-          this.errorService.setError(errorMsg);
           return throwError(() => ({ 
             status: error.status, 
             message: errorMsg
