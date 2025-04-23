@@ -60,6 +60,11 @@ export class AuthService {
     this.setupAutoRefresh();
   }
 
+  // Update current user directly
+  updateCurrentUser(user: any): void {
+    this.currentUserSubject.next(user);
+  }
+
   // Set up automatic token refresh
   private setupAutoRefresh() {
     // Check if token needs refresh every minute
@@ -103,6 +108,43 @@ export class AuthService {
 
   register(username: string, password: string, role: string = 'customer') {
     return this.http.post<any>(`${environment.apiUrl}/register`, { username, password, role });
+  }
+
+  // Initiate Google OAuth login/register flow
+  initiateGoogleLogin(role: string = 'customer'): Observable<string> {
+    return this.http.get<{ authUrl: string }>(`${environment.apiUrl}/auth/google/init?role=${role}`)
+      .pipe(
+        map(response => response.authUrl),
+        catchError(error => {
+          console.error('Error initiating Google login', error);
+          return throwError(() => error);
+        })
+      );
+  }
+
+  // Handle OAuth callback
+  handleOAuthCallback(provider: string, code: string, state: string): Observable<any> {
+    return this.http.post<any>(`${environment.apiUrl}/auth/${provider}/callback`, { code, state })
+      .pipe(
+        map(response => {
+          if (response && response.access_token) {
+            // Store user details and jwt token in local storage
+            const token = response.access_token;
+            const user = { 
+              username: response.username, 
+              token, 
+              refreshToken: response.refresh_token 
+            };
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            this.currentUserSubject.next(user);
+          }
+          return response;
+        }),
+        catchError(error => {
+          console.error(`Error handling ${provider} callback`, error);
+          return throwError(() => error);
+        })
+      );
   }
 
   logout() {

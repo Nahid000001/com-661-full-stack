@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-login',
@@ -50,6 +51,22 @@ export class LoginComponent implements OnInit {
         },
         error: error => {
           this.error = error.error.message || 'Login failed';
+          this.loading = false;
+        }
+      });
+  }
+
+  // Google login
+  loginWithGoogle() {
+    this.loading = true;
+    this.authService.initiateGoogleLogin()
+      .subscribe({
+        next: (url) => {
+          // Redirect to Google login page
+          window.location.href = url;
+        },
+        error: error => {
+          this.error = error.error?.message || 'Failed to initiate Google login';
           this.loading = false;
         }
       });

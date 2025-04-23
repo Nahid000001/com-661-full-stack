@@ -51,14 +51,15 @@ class User:
     """User model for authentication"""
     
     @staticmethod
-    def create_user(email, password, first_name, last_name, username):
+    def create_user(email, password, first_name='', last_name='', username='', role='customer'):
         """Create a new user"""
         user = {
             "email": email,
-            "username": username,
+            "username": username or email.split('@')[0],
             "password": generate_password_hash(password),
             "first_name": first_name,
             "last_name": last_name,
+            "role": role,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
         }

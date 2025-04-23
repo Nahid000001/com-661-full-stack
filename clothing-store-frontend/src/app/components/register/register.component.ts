@@ -1,14 +1,15 @@
 // src/app/components/register/register.component.ts
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule],
   templateUrl: './register.component.html',
   styleUrls: ['./register.component.scss']
 })
@@ -55,5 +56,23 @@ export class RegisterComponent implements OnInit {
         this.loading = false;
       }
     });
+  }
+
+  // Google registration
+  registerWithGoogle() {
+    this.loading = true;
+    // Use the role selected in the form for the Google registration
+    const role = this.f['role'].value || 'customer';
+    this.authService.initiateGoogleLogin(role)
+      .subscribe({
+        next: (url) => {
+          // Redirect to Google login page
+          window.location.href = url;
+        },
+        error: error => {
+          this.error = error.error?.message || 'Failed to initiate Google registration';
+          this.loading = false;
+        }
+      });
   }
 }
