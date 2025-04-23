@@ -66,19 +66,28 @@ export class StoreListComponent implements OnInit {
   loadStores() {
     this.loading = true;
     this.error = '';
+    console.log(`Loading stores page ${this.page} with limit ${this.limit}`);
     
     this.storeService.getAllStores(this.page, this.limit)
       .subscribe({
         next: data => {
-          this.stores = data.stores;
-          this.filteredStores = [...this.stores];
-          this.totalPages = data.total_pages || Math.ceil(data.total / this.limit);
-          this.loading = false;
-          
-          // Extract unique locations and types for filters
-          this.extractFilterOptions();
+          console.log('Received store data:', data);
+          if (data && data.stores) {
+            this.stores = data.stores;
+            this.filteredStores = [...this.stores];
+            this.totalPages = data.total_pages || Math.ceil(data.total / this.limit);
+            this.loading = false;
+            
+            // Extract unique locations and types for filters
+            this.extractFilterOptions();
+          } else {
+            console.error('Unexpected data structure:', data);
+            this.error = 'Invalid data format received from server';
+            this.loading = false;
+          }
         },
         error: error => {
+          console.error('Error loading stores:', error);
           this.error = error.message || 'Error loading stores';
           this.errorService.setError(this.error);
           this.loading = false;

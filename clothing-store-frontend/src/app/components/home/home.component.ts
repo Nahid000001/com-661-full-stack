@@ -42,9 +42,10 @@ export class HomeComponent implements OnInit {
 
   loadFeaturedStores() {
     this.loading = true;
+    this.error = '';
     console.log('Attempting to load featured stores...');
     
-    this.storeService.getAllStores(1, 4)
+    this.storeService.getFeaturedStores(4)
       .subscribe({
         next: data => {
           console.log('Received store data:', data);
@@ -58,8 +59,8 @@ export class HomeComponent implements OnInit {
           this.loading = false;
         },
         error: error => {
-          console.error('Error loading stores:', error);
-          this.error = error.error?.message || 'Error loading featured stores';
+          console.error('Error loading featured stores:', error);
+          this.error = error.message || 'Error loading featured stores';
           this.loading = false;
         }
       });

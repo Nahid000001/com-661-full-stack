@@ -1,3 +1,109 @@
+# Clothing Store Application
+
+A web application for discovering and reviewing clothing stores with Angular frontend and Flask/Python backend.
+
+## Requirements
+
+### Backend
+
+- Python 3.8+
+- MongoDB
+- Redis (optional, for JWT token management)
+
+### Frontend
+
+- Node.js 14+
+- Angular CLI
+
+## Setup Instructions
+
+### Clone the Repository
+
+```bash
+git clone <repository-url>
+cd clothing-store-app
+```
+
+### Backend Setup
+
+```bash
+cd clothing-store-backend
+
+# Create and activate virtual environment (optional but recommended)
+python -m venv venv
+# On Windows
+venv\Scripts\activate
+# On macOS/Linux
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run backend server
+python run.py
+```
+
+The backend server will run on http://localhost:5000
+
+### Frontend Setup
+
+```bash
+cd clothing-store-frontend
+
+# Install dependencies
+npm install
+
+# Run development server
+npm start
+```
+
+The frontend application will be available at http://localhost:4200
+
+## Quick Start
+
+### Windows
+
+```powershell
+# Run both frontend and backend
+.\start.ps1
+```
+
+### macOS/Linux
+
+```bash
+# Make script executable (first time only)
+chmod +x start.sh
+
+# Run both frontend and backend
+./start.sh
+```
+
+## Troubleshooting
+
+### API Connection Issues
+
+- Ensure MongoDB is running
+- Verify that the backend server is running on port 5000
+- Check CORS settings if you're experiencing cross-origin issues
+
+### Database Issues
+
+- MongoDB needs to be installed and running
+- Default connection string is `mongodb://localhost:27017/clothing_store`
+
+## Features
+
+- Browse clothing stores
+- Filter stores by location and type
+- View store details and reviews
+- Add new stores (requires login)
+- Add reviews for stores (requires login)
+- User authentication system
+
+## License
+
+[MIT License](LICENSE)
+
 # Clothing Store Application Improvements
 
 This document outlines the improvements made to address critical issues and enhance both frontend and backend components of the application.

@@ -37,12 +37,12 @@ def create_app(config_name='default'):
     redis_url = app.config.get('REDIS_URL', 'redis://localhost:6379/0')
     redis_client = redis.from_url(redis_url)
     
-    # Configure CORS to allow requests from your Angular app
+    # Configure CORS to allow requests from Angular app
     CORS(app, resources={
         r"/*": {
-            "origins": ["http://localhost:4200"],
+            "origins": ["http://localhost:4200", "http://127.0.0.1:4200", "*"],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization"]
+            "allow_headers": ["Content-Type", "Authorization", "Access-Control-Allow-Origin"]
         }
     })
     

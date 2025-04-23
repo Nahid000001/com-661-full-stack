@@ -1,7 +1,7 @@
 // src/app/services/store.service.ts
 import { Injectable } from '@angular/core';
 import { Observable, throwError, of } from 'rxjs';
-import { catchError, timeout, retry, delay, concatMap } from 'rxjs/operators';
+import { catchError, timeout, retry, delay, concatMap, retryWhen, tap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { ErrorService } from './error.service';
@@ -29,12 +29,30 @@ export class StoreService {
       })
     };
     
+    console.log(`Fetching stores from ${environment.apiUrl}/stores with page=${page} and limit=${limit}`);
+    
     return this.http.get<StoreListResponse>(`${environment.apiUrl}/stores?page=${page}&limit=${limit}`, httpOptions)
       .pipe(
         timeout(15000), // 15 second timeout
-        retry(3), // Retry up to 3 times on failure
+        retryWhen(errors => 
+          errors.pipe(
+            // Log the error
+            tap(error => {
+              console.error('Error fetching stores, retrying:', error);
+            }),
+            // Retry 3 times with exponential backoff
+            concatMap((error, i) => {
+              if (i >= 3) {
+                return throwError(() => error);
+              }
+              const retryDelay = 1000 * Math.pow(2, i);
+              console.log(`Retry attempt ${i + 1}, waiting ${retryDelay}ms`);
+              return of(error).pipe(delay(retryDelay));
+            })
+          )
+        ),
         catchError((error: HttpErrorResponse) => {
-          console.error('Error fetching stores:', error);
+          console.error('Error fetching stores after retries:', error);
           let errorMsg = 'Failed to fetch stores';
           
           if (error.status === 0) {
@@ -47,6 +65,21 @@ export class StoreService {
           return throwError(() => ({ 
             status: error.status, 
             message: errorMsg
+          }));
+        })
+      );
+  }
+
+  getFeaturedStores(limit: number = 4): Observable<StoreListResponse> {
+    console.log(`Fetching featured stores with limit=${limit}`);
+    return this.getAllStores(1, limit)
+      .pipe(
+        tap(response => console.log('Featured stores response:', response)),
+        catchError(error => {
+          console.error('Error in getFeaturedStores:', error);
+          return throwError(() => ({
+            status: error.status || 500,
+            message: error.message || 'Error loading featured stores'
           }));
         })
       );

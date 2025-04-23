@@ -105,9 +105,9 @@
           </div>
         </div>
         <div class="card-body">
-          <div class="store-badge" [ngClass]="getTypeBadgeClass(store.work_type)">{{ store.work_type }}</div>
+          <div class="store-badge" [ngClass]="getTypeBadgeClass(store.work_type)">{{ store.work_type || 'RETAIL' }}</div>
           <h3 class="store-name">{{ store.company_name }}</h3>
-          <p class="store-description">{{ truncateText(store.description, 120) }}</p>
+          <p class="store-description">{{ truncateText(store.description || 'Quality clothing store offering a great selection of products and excellent customer service.', 120) }}</p>
           
           <div class="store-meta">
             <span class="store-location">
@@ -115,7 +115,7 @@
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                 <circle cx="12" cy="10" r="3"></circle>
               </svg>
-              {{ store.location }}
+              {{ store.location || 'Unknown Location' }}
             </span>
             <span class="store-reviews" *ngIf="store.review_count">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
