@@ -72,17 +72,26 @@ export class StoreService {
 
   getFeaturedStores(limit: number = 4): Observable<StoreListResponse> {
     console.log(`Fetching featured stores with limit=${limit}`);
-    return this.getAllStores(1, limit)
-      .pipe(
-        tap(response => console.log('Featured stores response:', response)),
-        catchError(error => {
-          console.error('Error in getFeaturedStores:', error);
-          return throwError(() => ({
-            status: error.status || 500,
-            message: error.message || 'Error loading featured stores'
-          }));
-        })
-      );
+    return this.http.get<StoreListResponse>(`${environment.apiUrl}/stores?page=1&limit=${limit}`, {
+      headers: new HttpHeaders({
+        'Content-Type': 'application/json'
+      })
+    }).pipe(
+      timeout(10000), // 10 second timeout
+      retry(3), // Retry up to 3 times
+      tap(response => console.log('Featured stores response:', response)),
+      catchError(error => {
+        console.error('Error in getFeaturedStores:', error);
+        // Return empty store list instead of throwing error
+        return of({
+          stores: [],
+          total: 0,
+          page: 1,
+          limit: limit,
+          total_pages: 0
+        } as StoreListResponse);
+      })
+    );
   }
 
   retryWithBackoff<T>(maxRetries: number = 3, initialDelay: number = 1000): (source: Observable<T>) => Observable<T> {
