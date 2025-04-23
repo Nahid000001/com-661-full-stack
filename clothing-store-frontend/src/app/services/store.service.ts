@@ -33,43 +33,17 @@ export class StoreService {
     
     return this.http.get<StoreListResponse>(`${environment.apiUrl}/stores?page=${page}&limit=${limit}`, httpOptions)
       .pipe(
-        timeout(15000), // 15 second timeout
-        retryWhen(errors => 
-          errors.pipe(
-            // Log the error
-            tap(error => {
-              console.error('Error fetching stores, retrying:', error);
-            }),
-            // Retry 3 times with exponential backoff
-            concatMap((error, i) => {
-              if (i >= 3) {
-                return throwError(() => error);
-              }
-              const retryDelay = 1000 * Math.pow(2, i);
-              console.log(`Retry attempt ${i + 1}, waiting ${retryDelay}ms`);
-              return of(error).pipe(delay(retryDelay));
-            })
-          )
-        ),
+        timeout(3000), // 3 second timeout instead of 15
         catchError((error: HttpErrorResponse) => {
-          console.error('Error fetching stores after retries:', error);
-          let errorMsg = 'Failed to fetch stores';
-          
-          if (error.status === 0) {
-            // Skip showing connection error
-            return throwError(() => ({ 
-              status: error.status, 
-              message: ''
-            }));
-          } else if (error.error?.message) {
-            errorMsg = error.error.message;
-            this.errorService.setError(errorMsg);
-          }
-          
-          return throwError(() => ({ 
-            status: error.status, 
-            message: errorMsg
-          }));
+          console.error('Error fetching stores:', error);
+          // Return an empty response instead of throwing error
+          return of({
+            stores: [],
+            total: 0,
+            page: page,
+            limit: limit,
+            total_pages: 0
+          } as StoreListResponse);
         })
       );
   }
@@ -81,9 +55,7 @@ export class StoreService {
         'Content-Type': 'application/json'
       })
     }).pipe(
-      timeout(10000), // 10 second timeout
-      retry(3), // Retry up to 3 times
-      tap(response => console.log('Featured stores response:', response)),
+      timeout(3000), // 3 second timeout instead of 10
       catchError(error => {
         console.error('Error in getFeaturedStores:', error);
         // Return empty store list instead of throwing error

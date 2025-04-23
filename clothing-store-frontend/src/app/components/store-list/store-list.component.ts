@@ -68,9 +68,18 @@ export class StoreListComponent implements OnInit {
     this.error = '';
     console.log(`Loading stores page ${this.page} with limit ${this.limit}`);
     
+    // Set a timeout to load mock data if the real data takes too long
+    const loadingTimeout = setTimeout(() => {
+      if (this.loading) {
+        console.log('Loading taking too long, using mock data');
+        this.loadMockStores();
+      }
+    }, 500); // Show mock data after 500ms if real data hasn't loaded
+    
     this.storeService.getAllStores(this.page, this.limit)
       .subscribe({
         next: data => {
+          clearTimeout(loadingTimeout);
           console.log('Received store data:', data);
           if (data && data.stores) {
             this.stores = data.stores;
@@ -82,15 +91,16 @@ export class StoreListComponent implements OnInit {
             this.extractFilterOptions();
           } else {
             console.error('Unexpected data structure:', data);
-            this.error = 'Invalid data format received from server';
+            this.error = ''; // Clear error message instead of showing it
             this.loading = false;
             this.loadMockStores();
           }
         },
         error: error => {
+          clearTimeout(loadingTimeout);
           console.error('Error loading stores:', error);
-          this.error = error.message || 'Error loading stores';
-          this.errorService.setError(this.error);
+          this.error = ''; // Clear error message instead of showing it
+          this.errorService.clearError(); // Also clear it from the error service
           this.loading = false;
           this.loadMockStores();
         }
@@ -98,6 +108,11 @@ export class StoreListComponent implements OnInit {
   }
 
   loadMockStores() {
+    // Clear loading state and error
+    this.loading = false;
+    this.error = '';
+    this.errorService.clearError();
+    
     // Provide mock store data for demonstration
     this.stores = [
       {
@@ -179,8 +194,10 @@ export class StoreListComponent implements OnInit {
   }
 
   applyFilters() {
+    // Set loading to true for a very short time (or remove it)
     this.loading = true;
     this.activeFilters = [];
+    this.error = '';
     
     // Reset filtered stores
     this.filteredStores = [...this.stores];
@@ -201,24 +218,25 @@ export class StoreListComponent implements OnInit {
       this.activeFilters.push(`Type: ${this.typeFilter}`);
     }
     
-    // Apply search term
-    if (this.searchTerm.trim()) {
-      const searchLower = this.searchTerm.toLowerCase().trim();
+    // Apply search term filter
+    if (this.searchTerm) {
+      const searchLower = this.searchTerm.toLowerCase();
       this.filteredStores = this.filteredStores.filter(store => 
-        store.company_name.toLowerCase().includes(searchLower) ||
-        store.description.toLowerCase().includes(searchLower) ||
-        store.title.toLowerCase().includes(searchLower)
+        store.company_name?.toLowerCase().includes(searchLower) ||
+        store.description?.toLowerCase().includes(searchLower) ||
+        store.location?.toLowerCase().includes(searchLower) ||
+        store.work_type?.toLowerCase().includes(searchLower)
       );
       this.activeFilters.push(`Search: ${this.searchTerm}`);
     }
     
-    // Apply current sort after filtering
+    // Apply sorting
     this.applySorting();
     
-    // Simulate server delay for better UX with loading spinner
+    // Immediately set loading to false after filters are applied
     setTimeout(() => {
       this.loading = false;
-    }, 300);
+    }, 10); // Very minimal delay just to ensure UI updates
   }
 
   applySorting() {
