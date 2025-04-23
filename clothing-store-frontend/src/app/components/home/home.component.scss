@@ -1,7 +1,7 @@
 @use "sass:color";
 
 .hero {
-    background-color: #3f51b5;
+    background-color: #ccd1ee;
     color: white;
     text-align: center;
     padding: 4rem 2rem;
@@ -146,6 +146,7 @@
     margin-bottom: 1.5rem;
     line-height: 1.1;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    color: 	#BCA8F9;
     
     @media (max-width: 767px) {
       font-size: 2.8rem;
