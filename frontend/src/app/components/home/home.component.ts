@@ -129,7 +129,8 @@ export class HomeComponent implements OnInit {
     this.error = '';
     console.log('Attempting to load featured stores...');
     
-    this.storeService.getAllStores(1, 4)
+    // Get only top 3 stores sorted by rating
+    this.storeService.getFeaturedStores(3)
       .subscribe({
         next: data => {
           console.log('Received store data:', data);
@@ -142,7 +143,7 @@ export class HomeComponent implements OnInit {
           } else {
             console.log('No stores returned or empty array, using dummy data');
             // Fall back to dummy data if no stores are returned
-            this.featuredStores = this.getDummyStores();
+            this.featuredStores = this.getDummyStores().slice(0, 3); // Take only the top 3 dummy stores
             // Important: Don't set any error message
             this.error = '';
           }
@@ -151,7 +152,7 @@ export class HomeComponent implements OnInit {
           console.error('Error loading featured stores:', error);
           this.loading = false;
           // Fall back to dummy data on error, but don't show error message
-          this.featuredStores = this.getDummyStores();
+          this.featuredStores = this.getDummyStores().slice(0, 3); // Take only the top 3 dummy stores
           this.error = '';
         }
       });
