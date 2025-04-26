@@ -11,6 +11,9 @@ from app.routes.search import search_bp
 def register_blueprints(app):
     """Registering all blueprints with the app."""
     
+    # Disable strict trailing slashes to prevent redirections
+    app.url_map.strict_slashes = False
+    
     app.register_blueprint(admin_bp, url_prefix='/', name='admin_blueprint')
     
     app.register_blueprint(auth_bp, url_prefix='/', name='auth_blueprint')

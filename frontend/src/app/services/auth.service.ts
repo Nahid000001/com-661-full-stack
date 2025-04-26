@@ -91,7 +91,14 @@ export class AuthService {
   }
 
   login(username: string, password: string) {
-    return this.http.post<any>(`${environment.apiUrl}/login`, { emailOrUsername: username, password })
+    const httpOptions = {
+      headers: new HttpHeaders({
+        'Content-Type': 'application/json'
+      }),
+      withCredentials: true
+    };
+    
+    return this.http.post<any>(`${environment.apiUrl}/login`, { emailOrUsername: username, password }, httpOptions)
       .pipe(map(response => {
         if (response && response.access_token) {
           // Store user details and jwt token in local storage
@@ -182,9 +189,16 @@ export class AuthService {
       return throwError(() => new Error('No refresh token available'));
     }
     
+    const httpOptions = {
+      headers: new HttpHeaders({
+        'Content-Type': 'application/json'
+      }),
+      withCredentials: true
+    };
+    
     return this.http.post<any>(`${environment.apiUrl}/refresh-token`, {
       refresh_token: user.refreshToken
-    }).pipe(
+    }, httpOptions).pipe(
       map(response => {
         if (response && response.access_token) {
           // Update stored token
@@ -202,14 +216,14 @@ export class AuthService {
         }
         
         this.refreshTokenInProgress = false;
-        this.refreshTokenSubject.next(response);
-        
+        this.refreshTokenSubject.next(true);
         return response;
       }),
       catchError(error => {
         this.refreshTokenInProgress = false;
+        this.refreshTokenSubject.next(false);
         
-        // If refresh fails, log out user
+        // If refresh fails, logout the user
         if (error.status === 401) {
           this.logout();
         }

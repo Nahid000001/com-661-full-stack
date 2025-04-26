@@ -20,7 +20,7 @@ export class StoreListComponent implements OnInit {
   loading = false;
   error = '';
   page = 1;
-  limit = 12;
+  limit = 6;
   totalPages = 0;
   
   // Filter & sort properties

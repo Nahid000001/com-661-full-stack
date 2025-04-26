@@ -91,19 +91,110 @@ def get_all_stores(page=1, limit=10, sort=''):
         "total_pages": (total_stores + limit - 1) // limit
     }
 
-def get_store_by_id(store_id):
-    """Get a store by ID and increment view counter."""
+def get_store_by_id(store_id, user_id=None, role=None):
+    """
+    Get a store by ID and increment view counter.
+    
+    Args:
+        store_id: The ID of the store to retrieve
+        user_id: The ID of the current user (if authenticated)
+        role: The role of the current user (admin, store_owner, user, or None if not authenticated)
+    
+    Returns:
+        Store data filtered according to user role, or None if store not found
+    """
     try:
+        # Handle special test store IDs
+        if store_id in ['dummy1', 'dummy2', 'dummy3']:
+            # Create a test store for UI development
+            test_store = {
+                "_id": store_id,
+                "company_name": f"Test Store {store_id}",
+                "title": "Test Store for Development",
+                "description": "This is a test store used for development purposes. It doesn't exist in the database.",
+                "location": "Test Location",
+                "work_type": "Retail",
+                "views": 100,
+                "average_rating": 4.5,
+                "review_count": 10,
+                "branches": ["test-branch-1", "test-branch-2"],
+                "created_at": "2023-01-01T00:00:00.000Z",
+                "owner": "admin"
+            }
+            
+            # Filter store data based on user role
+            if role == "admin":
+                test_store["is_admin"] = True
+                test_store["can_edit"] = True
+                test_store["can_delete"] = True
+            elif role == "store_owner" and user_id == "admin":
+                test_store["is_owner"] = True
+                test_store["can_edit"] = True
+                test_store["can_delete"] = True
+                
+            return test_store
+            
+        # Normal flow for real store IDs
         store = mongo.db.stores.find_one({"_id": ObjectId(store_id)})
         if not store:
             return None
         
-        mongo.db.stores.update_one({"_id": ObjectId(store_id)}, {"$inc": {"views": 1}})
+        # Increment view counter (only for public views)
+        if not user_id or role == "user":
+            mongo.db.stores.update_one({"_id": ObjectId(store_id)}, {"$inc": {"views": 1}})
         
         # Convert ObjectId to string for JSON serialization
         store["_id"] = str(store["_id"])
-        return store
-    except:
+        
+        # Filter store data based on user role
+        if not user_id or not role:
+            # Unauthenticated users get limited public data
+            public_store = {
+                "_id": store["_id"],
+                "company_name": store["company_name"],
+                "title": store["title"],
+                "description": store["description"],
+                "location": store["location"],
+                "work_type": store["work_type"],
+                "views": store.get("views", 0),
+                "average_rating": store.get("average_rating", 0),
+                "review_count": len(store.get("reviews", [])) if isinstance(store.get("reviews", []), list) else 0
+            }
+            return public_store
+            
+        elif role == "admin":
+            # Admins get full store data plus admin tools flags
+            store["is_admin"] = True
+            store["can_edit"] = True
+            store["can_delete"] = True
+            return store
+            
+        elif role == "store_owner" and store.get("owner", "") == user_id:
+            # Store owners get their own stores with edit permissions
+            store["is_owner"] = True
+            store["can_edit"] = True
+            store["can_delete"] = True
+            return store
+            
+        else:
+            # Regular authenticated users get public data plus any user-specific flags
+            public_store = {
+                "_id": store["_id"],
+                "company_name": store["company_name"],
+                "title": store["title"],
+                "description": store["description"],
+                "location": store["location"],
+                "work_type": store["work_type"],
+                "views": store.get("views", 0),
+                "average_rating": store.get("average_rating", 0),
+                "review_count": len(store.get("reviews", [])) if isinstance(store.get("reviews", []), list) else 0,
+                "branches": store.get("branches", []),
+                "created_at": store.get("created_at", "")
+            }
+            return public_store
+            
+    except Exception as e:
+        print(f"Error retrieving store: {str(e)}")
         return None
 
 def update_store(store_id, update_data, owner):

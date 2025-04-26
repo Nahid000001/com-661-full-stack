@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from app.models import store
 from app.utils import is_valid_object_id
+from app.middlewares.auth import get_user_details
 from app.utils.error_handler import (
     ApiError, 
     ResourceNotFoundError, 
@@ -110,6 +111,7 @@ def add_store():
         raise ApiError(f"An error occurred: {str(e)}", 500)
 
 
+@stores_bp.route('', methods=['GET'])
 @stores_bp.route('/', methods=['GET'])
 def get_stores():
     """
@@ -230,14 +232,21 @@ def get_store_by_id(store_id):
                   type: integer
       400:
         description: Invalid ID format
+      401:
+        description: Unauthorized
       404:
         description: Store not found
     """
     try:
         if not is_valid_object_id(store_id):
             raise ValidationError("Invalid store ID format")
-            
-        result = store.get_store_by_id(store_id)
+        
+        # Get user identity and role if authenticated
+        user_id, role = get_user_details()
+        
+        # Get store with role-based filtering
+        result = store.get_store_by_id(store_id, user_id, role)
+        
         if not result:
             raise ResourceNotFoundError("Store not found")
             

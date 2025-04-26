@@ -4,6 +4,7 @@ from flask_jwt_extended import JWTManager
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flasgger import Swagger
+from flask_cors import CORS
 import os
 import redis
 
@@ -27,6 +28,19 @@ def create_app(config_name='default'):
     # Load configuration
     app.config.from_object(config[config_name])
     
+    # Configure CORS properly - IMPORTANT: This must be done before any other extensions
+    # that might handle responses to avoid redirect issues with preflight requests
+    CORS(app, 
+         resources={r"/*": {
+             "origins": ["http://localhost:4200"],
+             "supports_credentials": True,
+             "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
+             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+             "expose_headers": ["Content-Type", "Authorization"],
+             "max_age": 3600
+         }},
+         intercept_exceptions=True)
+    
     # Configure Redis connection
     global redis_client
     redis_url = app.config.get('REDIS_URL', 'redis://localhost:6379/0')
@@ -40,6 +54,12 @@ def create_app(config_name='default'):
     
     # Register error handlers
     register_error_handlers(app)
+    
+    # Add explicit handler for OPTIONS requests
+    @app.route('/', defaults={'path': ''}, methods=['OPTIONS'])
+    @app.route('/<path:path>', methods=['OPTIONS'])
+    def options_handler(path):
+        return '', 200
     
     @jwt.token_in_blocklist_loader
     def check_if_token_in_blocklist(jwt_header, jwt_payload):
@@ -99,29 +119,6 @@ def create_app(config_name='default'):
     @app.route('/health')
     def health_check():
         return jsonify({"status": "healthy", "message": "API is running"}), 200
-        
-    # Implement CORS directly without Flask-CORS
-    @app.after_request
-    def add_cors_headers(response):
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE, OPTIONS')
-        response.headers.add('Access-Control-Max-Age', '3600')
-        # Handle OPTIONS request explicitly
-        if request.method == 'OPTIONS':
-            return response
-        return response
-        
-    # Add an OPTIONS route handler for all routes
-    @app.route('/', defaults={'path': ''}, methods=['OPTIONS'])
-    @app.route('/<path:path>', methods=['OPTIONS'])
-    def options_handler(path):
-        response = jsonify({'status': 'ok'})
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE, OPTIONS')
-        response.headers.add('Access-Control-Max-Age', '3600')
-        return response, 200
 
     from app.routes import register_blueprints
     register_blueprints(app)

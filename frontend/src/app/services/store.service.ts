@@ -26,12 +26,13 @@ export class StoreService {
     const httpOptions = {
       headers: new HttpHeaders({
         'Content-Type': 'application/json'
-      })
+      }),
+      withCredentials: true // Enable sending cookies with cross-origin requests
     };
     
-    console.log(`Fetching stores from ${environment.apiUrl}/stores with page=${page} and limit=${limit}`);
+    console.log(`Fetching stores from ${environment.apiUrl}/stores/ with page=${page} and limit=${limit}`);
     
-    return this.http.get<StoreListResponse>(`${environment.apiUrl}/stores?page=${page}&limit=${limit}`, httpOptions)
+    return this.http.get<StoreListResponse>(`${environment.apiUrl}/stores/?page=${page}&limit=${limit}`, httpOptions)
       .pipe(
         timeout(15000), // 15 second timeout
         catchError((error: HttpErrorResponse) => {
@@ -55,29 +56,33 @@ export class StoreService {
   getFeaturedStores(limit: number = 4): Observable<StoreListResponse> {
     console.log(`Fetching featured stores with limit=${limit}`);
     
-    return this.http.get<StoreListResponse>(`${environment.apiUrl}/stores?page=1&limit=${limit}&sort=rating`, {
+    const httpOptions = {
       headers: new HttpHeaders({
         'Content-Type': 'application/json'
-      })
-    }).pipe(
-      timeout(10000), // 10 second timeout
-      retry(2), // Retry failed requests up to 2 times
-      catchError(error => {
-        console.error('Error in getFeaturedStores:', error);
-        
-        // Don't set the error in the error service to avoid showing error messages on the home page
-        // this.errorService.setError('Failed to load featured stores. Please try again later.');
-        
-        // Return empty store list on error
-        return of({
-          stores: [],
-          total: 0,
-          page: 1,
-          limit: limit,
-          total_pages: 0
-        } as StoreListResponse);
-      })
-    );
+      }),
+      withCredentials: true
+    };
+    
+    return this.http.get<StoreListResponse>(`${environment.apiUrl}/stores/?page=1&limit=${limit}&sort=rating`, httpOptions)
+      .pipe(
+        timeout(10000), // 10 second timeout
+        retry(2), // Retry failed requests up to 2 times
+        catchError(error => {
+          console.error('Error in getFeaturedStores:', error);
+          
+          // Don't set the error in the error service to avoid showing error messages on the home page
+          // this.errorService.setError('Failed to load featured stores. Please try again later.');
+          
+          // Return empty store list on error
+          return of({
+            stores: [],
+            total: 0,
+            page: 1,
+            limit: limit,
+            total_pages: 0
+          } as StoreListResponse);
+        })
+      );
   }
 
   retryWithBackoff<T>(maxRetries: number = 3, initialDelay: number = 1000): (source: Observable<T>) => Observable<T> {
@@ -106,16 +111,27 @@ export class StoreService {
 
   getStoreById(id: string): Observable<Store> {
     console.log(`Fetching store with ID: ${id}`);
-    return this.http.get<Store>(`${environment.apiUrl}/stores/${id}`)
+    
+    const httpOptions = {
+      headers: new HttpHeaders({
+        'Content-Type': 'application/json'
+      }),
+      withCredentials: true  // Enable sending cookies with cross-origin requests
+    };
+    
+    return this.http.get<Store>(`${environment.apiUrl}/stores/${id}`, httpOptions)
       .pipe(
         timeout(10000), // 10 second timeout
-        this.retryWithBackoff(3), // Retry with exponential backoff
         catchError((error: HttpErrorResponse) => {
           console.error(`Error fetching store with ID ${id}:`, error);
           let errorMsg = 'Failed to fetch store details';
           
           if (error.status === 0) {
             errorMsg = 'Network error. Please check your connection.';
+          } else if (error.status === 401) {
+            errorMsg = 'You need to be logged in to view this store.';
+          } else if (error.status === 403) {
+            errorMsg = 'You do not have permission to view this store.';
           } else if (error.status === 404) {
             errorMsg = 'Store not found.';
           } else if (error.error?.message) {
