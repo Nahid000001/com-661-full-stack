@@ -125,15 +125,18 @@ export class StoreDetailComponent implements OnInit {
       if (user && user.token) {
         const payload = this.authService.decodeToken(user.token);
         const role = payload?.role || 'customer';
-        const userId = payload?.userId;
+        const userId = payload?.sub || payload?.userId; // Make sure we get the correct user ID
         
         this.isAdmin = role === 'admin';
-        // Check if user is the owner when store data is loaded
+        
+        // Only set isOwner to true if:
+        // 1. The user is the specific owner of this store (userId matches store.owner), OR
+        // 2. The user has admin role (already checked above)
         if (this.store) {
-          this.isOwner = userId === this.store.owner || role === 'store_owner';
+          this.isOwner = this.isAdmin || userId === this.store.owner;
         } else {
           this.storeService.getStoreById(this.storeId).subscribe(store => {
-            this.isOwner = userId === store.owner || role === 'store_owner';
+            this.isOwner = this.isAdmin || userId === store.owner;
           });
         }
       } else {
