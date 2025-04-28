@@ -8,6 +8,7 @@ import { ReviewService } from '../../services/review.service';
 import { AuthService } from '../../services/auth.service';
 import { ReviewListComponent } from '../review-list/review-list.component';
 import { ReviewFormComponent } from '../review-form/review-form.component';
+import { StoreMapComponent } from '../store-map/store-map.component';
 
 @Component({
   selector: 'app-store-detail',
@@ -17,7 +18,8 @@ import { ReviewFormComponent } from '../review-form/review-form.component';
     ReactiveFormsModule, 
     FormsModule,
     ReviewListComponent,
-    ReviewFormComponent
+    ReviewFormComponent,
+    StoreMapComponent
   ],
   templateUrl: './store-detail.component.html',
   styleUrls: ['./store-detail.component.scss']
@@ -147,8 +149,7 @@ export class StoreDetailComponent implements OnInit {
   }
 
   sortReviews() {
-    if (!this.reviews) return;
-    
+    if (!Array.isArray(this.reviews)) return;
     switch (this.sortOption) {
       case 'newest':
         this.reviews.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());

@@ -84,6 +84,19 @@
             <div class="store-slogan" *ngIf="store.title">{{ store.title }}</div>
             <div class="store-description">{{ store.description }}</div>
           </div>
+
+          <!-- Store Location Map -->
+          <div class="store-location-card">
+            <h2>Store Location</h2>
+            <app-store-map [location]="store.location"></app-store-map>
+            <div class="location-address">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+              <span>{{ store.location }}</span>
+            </div>
+          </div>
           
           <!-- Reviews Section -->
           <div class="reviews-section">

@@ -155,6 +155,7 @@ export class StoreListComponent implements OnInit {
   }
 
   applySorting() {
+    if (!Array.isArray(this.filteredStores)) return;
     switch(this.sortOption) {
       case 'nameAsc':
         this.filteredStores.sort((a, b) => a.company_name.localeCompare(b.company_name));
