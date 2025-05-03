@@ -15,7 +15,9 @@ export const tokenRefreshInterceptor: HttpInterceptorFn = (req: HttpRequest<unkn
       if (error instanceof HttpErrorResponse && 
           error.status === 401 && 
           authService.isLoggedIn() && 
-          !req.url.includes('refresh-token')) {
+          !req.url.includes('refresh-token') &&
+          !req.url.includes('login') &&
+          !req.url.includes('logout')) {
         return handleTokenRefresh(req, next, authService);
       }
       
@@ -30,24 +32,29 @@ function handleTokenRefresh(req: HttpRequest<unknown>, next: HttpHandlerFn, auth
     refreshTokenSubject.next(null);
     
     return authService.refreshToken().pipe(
-      switchMap((token: any) => {
-        refreshTokenSubject.next(token);
-        return next(addTokenToRequest(req, token.accessToken));
+      switchMap((response: any) => {
+        isRefreshing = false;
+        refreshTokenSubject.next(response.access_token);
+        
+        // Clone the request with the new token
+        return next(addTokenToRequest(req, response.access_token));
       }),
-      catchError((error) => {
+      catchError((refreshError) => {
+        isRefreshing = false;
         authService.logout();
-        return throwError(() => error);
+        return throwError(() => refreshError);
       }),
       finalize(() => {
         isRefreshing = false;
       })
     );
   } else {
+    // Wait for the token to be refreshed
     return refreshTokenSubject.pipe(
       filter(token => token !== null),
       take(1),
       switchMap(token => {
-        return next(addTokenToRequest(req, token.accessToken));
+        return next(addTokenToRequest(req, token));
       })
     );
   }

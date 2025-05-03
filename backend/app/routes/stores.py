@@ -307,27 +307,18 @@ def update_store_by_id(store_id):
     try:
         if not is_valid_object_id(store_id):
             raise ValidationError("Invalid store ID format")
-            
         data = request.get_json()
         user = get_jwt_identity()
         claims = get_jwt()
-        
-        # If user is admin, they can update any store
-        if claims.get("role") == "admin":
-            pass 
-        else:
-            allowed_fields = ["company_name", "title", "description", "location", "work_type"]
-            update_data = {field: data[field] for field in allowed_fields if field in data and data[field]}
-            
-            if not update_data:
-                raise ValidationError("No valid fields provided for update")
-            
-            success, message = store.update_store(store_id, update_data, user)
-            if not success:
-                raise ForbiddenError(message)
-        
+        is_admin = claims.get("role") == "admin"
+        allowed_fields = ["company_name", "title", "description", "location", "work_type"]
+        update_data = {field: data[field] for field in allowed_fields if field in data and data[field]}
+        if not update_data:
+            raise ValidationError("No valid fields provided for update")
+        success, message = store.update_store(store_id, update_data, user, is_admin=is_admin)
+        if not success:
+            raise ForbiddenError(message)
         return jsonify({"message": "Store updated successfully"}), 200
-        
     except (ValidationError, ForbiddenError) as e:
         raise e
     except Exception as e:
@@ -366,21 +357,13 @@ def delete_store_by_id(store_id):
     try:
         if not is_valid_object_id(store_id):
             raise ValidationError("Invalid store ID format")
-            
         user = get_jwt_identity()
         claims = get_jwt()
-        
-        # If user is admin, they can delete any store
-        if claims.get("role") == "admin":
-            success, message = True, "Store deleted successfully by admin"
-        else:
-            success, message = store.delete_store(store_id, user)
-        
+        is_admin = claims.get("role") == "admin"
+        success, message = store.delete_store(store_id, user, is_admin=is_admin)
         if not success:
             raise ForbiddenError(message)
-        
         return jsonify({"message": message}), 200
-        
     except (ValidationError, ForbiddenError) as e:
         raise e
     except Exception as e:

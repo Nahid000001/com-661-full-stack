@@ -71,8 +71,8 @@ def login():
         identity=str(user['_id']),
         fresh=True,
         additional_claims={
-            "email": user['email'],
-            "username": user['username']
+            "email": user.get('email', ''),
+            "username": user.get('username', '')
         }
     )
     refresh_token = create_refresh_token(identity=str(user['_id']))
@@ -82,10 +82,10 @@ def login():
         "refresh_token": refresh_token,
         "user": {
             "id": str(user['_id']),
-            "email": user['email'],
-            "first_name": user['first_name'],
-            "last_name": user['last_name'],
-            "username": user['username']
+            "email": user.get('email', ''),
+            "first_name": user.get('first_name', ''),
+            "last_name": user.get('last_name', ''),
+            "username": user.get('username', '')
         }
     }), 200
 
@@ -102,20 +102,23 @@ def refresh():
     
     return jsonify({"access_token": access_token}), 200
 
-@auth_bp.route('/logout', methods=['DELETE'])
-@jwt_required()
+@auth_bp.route('/logout', methods=['DELETE', 'POST'])
+@jwt_required(optional=True)
 def logout():
     """Logout a user by adding token to blocklist"""
     jwt_data = get_jwt()
-    jti = jwt_data["jti"]
-    
-    # Store token in Redis with expiration
-    redis_client.set(jti, "", ex=int(ACCESS_TOKEN_EXPIRES.total_seconds()))
-    
-    # If we also want to revoke the refresh token
-    refresh_jti = request.headers.get('X-Refresh-Token-JTI')
-    if refresh_jti:
-        redis_client.set(refresh_jti, "", ex=int(REFRESH_TOKEN_EXPIRES.total_seconds()))
+    if not jwt_data:
+        return jsonify({"msg": "No token provided"}), 200
+        
+    jti = jwt_data.get("jti")
+    if jti:
+        # Store token in Redis with expiration
+        redis_client.set(jti, "", ex=int(ACCESS_TOKEN_EXPIRES.total_seconds()))
+        
+        # If we also want to revoke the refresh token
+        refresh_jti = request.headers.get('X-Refresh-Token-JTI')
+        if refresh_jti:
+            redis_client.set(refresh_jti, "", ex=int(REFRESH_TOKEN_EXPIRES.total_seconds()))
     
     return jsonify({"msg": "Successfully logged out"}), 200
 

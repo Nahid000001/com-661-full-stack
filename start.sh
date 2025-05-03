@@ -1,32 +1,38 @@
 #!/bin/bash
 
-# Function to clean up background processes when the script exits
-cleanup() {
-    echo "Stopping backend server..."
-    kill $BACKEND_PID
-    exit 0
-}
+# Shell script to start both frontend and backend
 
-# Set up trap to call cleanup function when script receives SIGINT (Ctrl+C)
-trap cleanup SIGINT
+# Set Python environment
+export FLASK_APP="backend/run.py"
+export FLASK_ENV="development"
 
-# Start MongoDB if it's not already running (uncomment if needed)
-# mongod &
-# MONGO_PID=$!
+# Check if MongoDB is running
+if pgrep mongod > /dev/null
+then
+    echo "MongoDB is already running"
+else
+    echo "Starting MongoDB..."
+    mongod --fork --logpath /tmp/mongodb.log
+    sleep 5
+    echo "MongoDB started"
+fi
 
-# Start backend server in the background
-cd clothing-store-backend
-echo "Starting backend server on http://localhost:5000"
-python run.py &
+# Start backend server in background
+echo "Starting backend server..."
+python backend/run.py &
 BACKEND_PID=$!
 
-# Wait a bit for backend to start
+# Wait for backend to start
 sleep 3
+echo "Backend server started on http://localhost:5000"
+
+# Navigate to frontend directory
+cd frontend
+echo "Starting Angular frontend server..."
 
 # Start frontend server
-cd ../clothing-store-frontend
-echo "Starting Angular frontend server..."
 npm start
 
-# When npm start finishes, clean up 
-cleanup 
+# When frontend server stops, kill the backend process
+kill $BACKEND_PID
+echo "Backend server stopped" 

@@ -196,7 +196,7 @@ export class AuthService {
       withCredentials: true
     };
     
-    return this.http.post<any>(`${environment.apiUrl}/refresh-token`, {
+    return this.http.post<any>(`${environment.apiUrl}/refresh`, {
       refresh_token: user.refreshToken
     }, httpOptions).pipe(
       map(response => {
@@ -216,7 +216,7 @@ export class AuthService {
         }
         
         this.refreshTokenInProgress = false;
-        this.refreshTokenSubject.next(true);
+        this.refreshTokenSubject.next(response);
         return response;
       }),
       catchError(error => {

@@ -197,38 +197,30 @@ def get_store_by_id(store_id, user_id=None, role=None):
         print(f"Error retrieving store: {str(e)}")
         return None
 
-def update_store(store_id, update_data, owner):
+def update_store(store_id, update_data, owner, is_admin=False):
     """Update a store."""
-    # Fetch store details
     store = mongo.db.stores.find_one({"_id": ObjectId(store_id)})
     if not store:
         return False, "Store not found"
-    
-    # Only allow update if the user is the store owner
-    if store.get("owner", "") != owner:
-        return False, "Unauthorized: Only the store owner can update"
-    
-    # Add updated timestamp
+    # Allow update if admin or store owner
+    if not is_admin and store.get("owner", "") != owner:
+        return False, "Unauthorized: Only the store owner or admin can update"
     update_data["updated_at"] = get_current_time()
-    
-    # Perform update
     result = mongo.db.stores.update_one({"_id": ObjectId(store_id)}, {"$set": update_data})
-    
     if result.modified_count == 0:
         return False, "No changes made"
-    
     return True, "Store updated successfully"
 
-def delete_store(store_id, owner):
+def delete_store(store_id, owner, is_admin=False):
     """Delete a store."""
     
     store = mongo.db.stores.find_one({"_id": ObjectId(store_id)})
     if not store:
         return False, "Store not found"
     
-    # Only allow deletion if the user is the store owner
-    if store.get("owner", "") != owner:
-        return False, "Unauthorized: Only the store owner can delete"
+    # Allow delete if admin or store owner
+    if not is_admin and store.get("owner", "") != owner:
+        return False, "Unauthorized: Only the store owner or admin can delete"
     
     result = mongo.db.stores.delete_one({"_id": ObjectId(store_id)})
     
