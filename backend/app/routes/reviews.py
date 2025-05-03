@@ -87,13 +87,31 @@ def edit_store_review(store_id, review_id):
         if not new_comment and new_rating is None:
             raise ValidationError("Nothing to update")
 
-        success, message = review.edit_review(store_id, review_id, user, new_comment, new_rating)
+        success, result = review.edit_review(store_id, review_id, user, new_comment, new_rating)
         if not success:
-            raise ForbiddenError(message)
+            raise ForbiddenError(result)
             
-        return jsonify({"message": message}), 200
+        # If success, result is a message. Get the updated review to return
+        store_obj = store.get_store_by_id(store_id)
+        if not store_obj:
+            raise ResourceNotFoundError("Store not found")
+            
+        # Find the updated review
+        updated_review = None
+        for rev in store_obj.get("reviews", []):
+            if rev.get("review_id") == review_id:
+                updated_review = rev
+                break
         
-    except (ValidationError, ForbiddenError) as e:
+        if not updated_review:
+            raise ResourceNotFoundError("Review not found")
+            
+        return jsonify({
+            "message": result,
+            "review": updated_review
+        }), 200
+        
+    except (ValidationError, ForbiddenError, ResourceNotFoundError) as e:
         raise e
     except Exception as e:
         raise ApiError(str(e))

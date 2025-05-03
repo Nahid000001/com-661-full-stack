@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { Review } from '../models/review.model';
+import { map } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -20,7 +21,10 @@ export class ReviewService {
   }
 
   editReview(storeId: string, reviewId: string, review: Partial<Review>): Observable<Review> {
-    return this.http.patch<Review>(`${environment.apiUrl}/stores/${storeId}/reviews/${reviewId}`, review);
+    return this.http.patch<any>(`${environment.apiUrl}/stores/${storeId}/reviews/${reviewId}`, review)
+      .pipe(
+        map(response => response.review || {})
+      );
   }
 
   deleteReview(storeId: string, reviewId: string): Observable<any> {

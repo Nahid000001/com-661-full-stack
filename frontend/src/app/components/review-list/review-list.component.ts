@@ -18,7 +18,7 @@ export class ReviewListComponent implements OnInit {
   @Input() reviews: Review[] = [];
   @Input() isAdmin: boolean = false;
   @Input() isOwner: boolean = false;
-  @Output() reviewUpdated = new EventEmitter<boolean>();
+  @Output() reviewUpdated = new EventEmitter<{updated: boolean, review?: Review}>();
   
   error: string = '';
   editingReview: string | null = null;
@@ -100,10 +100,25 @@ export class ReviewListComponent implements OnInit {
     
     this.reviewService.editReview(this.storeId, reviewId, this.editForm.value)
       .subscribe(
-        () => {
+        (updatedReview) => {
+          // Find the review in the array and update it
+          const reviewIndex = this.reviews.findIndex(r => r._id === reviewId);
+          if (reviewIndex !== -1) {
+            // Update the specific fields that were edited
+            this.reviews[reviewIndex].rating = this.editForm.value.rating;
+            this.reviews[reviewIndex].comment = this.editForm.value.comment;
+            this.reviews[reviewIndex].updated_at = new Date();
+            
+            // Emit event to notify parent component about the update with the review data
+            this.reviewUpdated.emit({
+              updated: true,
+              review: this.reviews[reviewIndex]
+            });
+          } else {
+            this.reviewUpdated.emit({updated: true});
+          }
+          
           this.editingReview = null;
-          this.loadReviews();
-          this.reviewUpdated.emit(true);
         },
         (err: any) => {
           this.error = 'Failed to update review. Please try again.';
@@ -118,7 +133,7 @@ export class ReviewListComponent implements OnInit {
         .subscribe(
           () => {
             this.loadReviews();
-            this.reviewUpdated.emit(true);
+            this.reviewUpdated.emit({updated: true});
           },
           (err: any) => {
             this.error = 'Failed to delete review. Please try again.';
@@ -158,7 +173,7 @@ export class ReviewListComponent implements OnInit {
         () => {
           this.replyingTo = null;
           this.loadReviews();
-          this.reviewUpdated.emit(true);
+          this.reviewUpdated.emit({updated: true});
         },
         (err: any) => {
           this.error = 'Failed to submit reply. Please try again.';

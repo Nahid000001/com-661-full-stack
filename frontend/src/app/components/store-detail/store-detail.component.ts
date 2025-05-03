@@ -178,6 +178,18 @@ export class StoreDetailComponent implements OnInit {
     }
   }
 
+  onReviewUpdated(event: {updated: boolean, review?: any}) {
+    if (event.updated) {
+      this.sortReviews();
+      
+      // Update store average rating
+      if (this.store) {
+        const totalRating = this.reviews.reduce((sum, review) => sum + review.rating, 0);
+        this.store.average_rating = totalRating / this.reviews.length;
+      }
+    }
+  }
+
   // Image gallery methods
   getMainImage() {
     return this.storeImages[this.currentImageIndex];
