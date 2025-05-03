@@ -18,7 +18,7 @@ import sys
 from subprocess import Popen
 
 def run_backend():
-    from clothing_store_backend.app import create_app
+    from backend.app import create_app
     app = create_app()
     app.run(debug=True, host='0.0.0.0', port=5000)
 

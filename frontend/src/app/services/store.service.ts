@@ -22,6 +22,18 @@ export class StoreService {
     private errorService: ErrorService
   ) { }
 
+  // Add healthcheck method
+  checkBackendStatus(): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/health`)
+      .pipe(
+        timeout(5000),
+        catchError(error => {
+          console.error('Backend health check failed:', error);
+          return of({ status: 'error', message: 'Backend is not responding' });
+        })
+      );
+  }
+
   getAllStores(page: number = 1, limit: number = 10): Observable<StoreListResponse> {
     const httpOptions = {
       headers: new HttpHeaders({
@@ -34,7 +46,7 @@ export class StoreService {
     
     return this.http.get<StoreListResponse>(`${environment.apiUrl}/stores/?page=${page}&limit=${limit}`, httpOptions)
       .pipe(
-        timeout(15000), // 15 second timeout
+        timeout(30000), // Increase timeout to 30 seconds
         catchError((error: HttpErrorResponse) => {
           console.error('Error fetching stores:', error);
           
@@ -65,13 +77,10 @@ export class StoreService {
     
     return this.http.get<StoreListResponse>(`${environment.apiUrl}/stores/?page=1&limit=${limit}&sort=rating`, httpOptions)
       .pipe(
-        timeout(10000), // 10 second timeout
-        retry(2), // Retry failed requests up to 2 times
+        timeout(30000), // Increase timeout from 10 to 30 seconds
+        retry(3), // Increase retry attempts from 2 to 3
         catchError(error => {
           console.error('Error in getFeaturedStores:', error);
-          
-          // Don't set the error in the error service to avoid showing error messages on the home page
-          // this.errorService.setError('Failed to load featured stores. Please try again later.');
           
           // Return empty store list on error
           return of({

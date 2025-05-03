@@ -43,19 +43,43 @@ export class HomeComponent implements OnInit {
     // Set loading state first
     this.loading = true;
     
-    // Load stores 
-    this.loadFeaturedStores();
+    // Check backend health first
+    this.checkBackendHealth();
     
-    // Add a backup in case something goes wrong
+    // Add a backup in case something goes wrong - increase timeout to 5 seconds
     setTimeout(() => {
-      // If still loading or showing error after 2 seconds, force load dummy data
+      // If still loading or showing error after 5 seconds, force load dummy data
       if (this.loading || this.error) {
-        console.log('Fallback: Loading dummy store data');
+        console.log('Fallback: Loading dummy store data after timeout');
         this.featuredStores = this.getDummyStores();
         this.loading = false;
         this.error = '';
       }
-    }, 2000);
+    }, 5000);
+  }
+
+  // Add backend health check method
+  checkBackendHealth() {
+    this.storeService.checkBackendStatus().subscribe({
+      next: (response) => {
+        console.log('Backend health status:', response);
+        if (response && response.status === 'healthy') {
+          // Backend is healthy, load stores
+          this.loadFeaturedStores();
+        } else {
+          // Backend is not healthy, use dummy data
+          console.log('Backend is not healthy, using dummy data');
+          this.featuredStores = this.getDummyStores();
+          this.loading = false;
+        }
+      },
+      error: (error) => {
+        console.error('Backend health check error:', error);
+        // On error, load dummy data
+        this.featuredStores = this.getDummyStores();
+        this.loading = false;
+      }
+    });
   }
 
   // Add method to provide dummy store data when no stores are available in the database
@@ -150,6 +174,7 @@ export class HomeComponent implements OnInit {
         },
         error: error => {
           console.error('Error loading featured stores:', error);
+          console.error('Error details:', JSON.stringify(error));
           this.loading = false;
           // Fall back to dummy data on error, but don't show error message
           this.featuredStores = this.getDummyStores().slice(0, 3); // Take only the top 3 dummy stores
