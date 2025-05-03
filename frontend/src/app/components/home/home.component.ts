@@ -3,7 +3,9 @@ import { Component, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { StoreService } from '../../services/store.service';
+import { ReviewService } from '../../services/review.service';
 import { Store } from '../../interfaces/store.interface';
+import { Review } from '../../models/review.model';
 
 @Component({
   selector: 'app-home',
@@ -14,8 +16,11 @@ import { Store } from '../../interfaces/store.interface';
 })
 export class HomeComponent implements OnInit {
   featuredStores: any[] = [];
+  latestReviews: any[] = [];
   loading = false;
+  loadingReviews = false;
   error = '';
+  reviewError = '';
   colorPalette = [
     '#1a237e', // Primary dark
     '#534bae', // Primary light
@@ -37,14 +42,33 @@ export class HomeComponent implements OnInit {
     'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1587&q=80'  // High end clothing display
   ];
 
-  constructor(private storeService: StoreService) { }
+  // Avatar placeholders for reviewers
+  avatarImages = [
+    'https://i.pravatar.cc/150?img=1',
+    'https://i.pravatar.cc/150?img=2',
+    'https://i.pravatar.cc/150?img=3',
+    'https://i.pravatar.cc/150?img=4',
+    'https://i.pravatar.cc/150?img=5',
+    'https://i.pravatar.cc/150?img=6',
+    'https://i.pravatar.cc/150?img=7',
+    'https://i.pravatar.cc/150?img=8'
+  ];
+
+  constructor(
+    private storeService: StoreService,
+    private reviewService: ReviewService
+  ) { }
 
   ngOnInit() {
     // Set loading state first
     this.loading = true;
+    this.loadingReviews = true;
     
     // Check backend health first
     this.checkBackendHealth();
+    
+    // Load latest reviews
+    this.loadLatestReviews();
     
     // Add a backup in case something goes wrong - increase timeout to 5 seconds
     setTimeout(() => {
@@ -54,6 +78,14 @@ export class HomeComponent implements OnInit {
         this.featuredStores = this.getDummyStores();
         this.loading = false;
         this.error = '';
+      }
+      
+      // If still loading reviews, load dummy reviews
+      if (this.loadingReviews || this.reviewError) {
+        console.log('Fallback: Loading dummy review data after timeout');
+        this.latestReviews = this.getDummyReviews();
+        this.loadingReviews = false;
+        this.reviewError = '';
       }
     }, 5000);
   }
@@ -80,6 +112,67 @@ export class HomeComponent implements OnInit {
         this.loading = false;
       }
     });
+  }
+
+  // Load latest reviews from backend
+  loadLatestReviews() {
+    this.loadingReviews = true;
+    this.reviewError = '';
+    
+    this.reviewService.getLatestReviews(3).subscribe({
+      next: (reviews) => {
+        console.log('Received reviews:', reviews);
+        this.loadingReviews = false;
+        
+        if (reviews && reviews.length > 0) {
+          this.latestReviews = reviews;
+          this.reviewError = '';
+        } else {
+          console.log('No reviews returned or empty array, using dummy data');
+          this.latestReviews = this.getDummyReviews();
+        }
+      },
+      error: (error) => {
+        console.error('Error loading latest reviews:', error);
+        // Fall back to dummy reviews
+        this.latestReviews = this.getDummyReviews();
+        this.loadingReviews = false;
+        this.reviewError = '';
+      }
+    });
+  }
+
+  // Get dummy reviews when no real reviews are available
+  getDummyReviews(): any[] {
+    return [
+      {
+        review_id: 'review1',
+        user: 'User 1',
+        rating: 4.5,
+        comment: 'Great selection of clothing with excellent customer service. Will definitely shop here again!',
+        created_at: new Date(2023, 5, 15),
+        store_id: 'dummy1',
+        store_name: 'Fashion Elite'
+      },
+      {
+        review_id: 'review2',
+        user: 'User 2',
+        rating: 4.2,
+        comment: 'Loved the variety of styles available. Found exactly what I was looking for at a reasonable price.',
+        created_at: new Date(2023, 5, 15),
+        store_id: 'dummy2',
+        store_name: 'Urban Threads'
+      },
+      {
+        review_id: 'review3',
+        user: 'User 3',
+        rating: 4.8,
+        comment: 'The sustainable practices of this store are impressive. Great quality products that last a long time.',
+        created_at: new Date(2023, 5, 15),
+        store_id: 'dummy3',
+        store_name: 'Eco Apparel'
+      }
+    ];
   }
 
   // Add method to provide dummy store data when no stores are available in the database
@@ -211,6 +304,43 @@ export class HomeComponent implements OnInit {
     return this.storeImages[index] || this.storeImages[0];
   }
   
+  // Get avatar for review user
+  getUserAvatar(review: any): string {
+    if (!review || !review.user) {
+      return this.avatarImages[0];
+    }
+    
+    // Hash the username to get consistent avatar
+    const hash = this.hashString(review.user);
+    const index = Math.abs(hash) % this.avatarImages.length;
+    return this.avatarImages[index];
+  }
+
+  // Format date to display in a readable format
+  formatDate(date: any): string {
+    if (!date) {
+      return 'Unknown date';
+    }
+    
+    // Convert to Date object if it's a string
+    const dateObj = typeof date === 'string' 
+      ? new Date(date) 
+      : (date instanceof Date ? date : new Date());
+      
+    // Format the date
+    return dateObj.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  }
+
+  // Generate stars array for a rating
+  getStarsArray(rating: number): number[] {
+    const rounded = Math.round(rating);
+    return Array(rounded).fill(0);
+  }
+  
   getRandomRating(): string {
     return (4 + Math.random()).toFixed(1);
   }
@@ -249,10 +379,14 @@ export class HomeComponent implements OnInit {
         return 'badge-designer';
       case 'CASUAL':
         return 'badge-casual';
+      case 'FORMAL':
+        return 'badge-formal';
       case 'LUXURY':
         return 'badge-luxury';
       case 'SUSTAINABLE':
         return 'badge-sustainable';
+      case 'MANUFACTURING':
+        return 'badge-manufacturing';
       default:
         return 'badge-retail';
     }

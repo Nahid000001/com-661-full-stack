@@ -45,10 +45,10 @@ export class StoreMapComponent implements OnInit, AfterViewInit {
     // Load Google Maps script if not already loaded
     if (!window.google) {
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=AlzaSyDYIJNwoGmGS9wD0csiiQo4ut9Ie00dgSM`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyDYIJNwoGmGS9wD0csiiQo4ut9Ie00dgSM`;
+      document.head.appendChild(script);
       script.async = true;
       script.defer = true;
-      document.head.appendChild(script);
     }
   }
   

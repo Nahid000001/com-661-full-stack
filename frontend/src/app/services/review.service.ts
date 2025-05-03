@@ -28,6 +28,19 @@ export class ReviewService {
     );
   }
 
+  getLatestReviews(limit: number = 3): Observable<Review[]> {
+    return this.http.get<{ reviews: Review[] }>(
+      `${environment.apiUrl}/reviews/latest?limit=${limit}`
+    ).pipe(
+      map(response => response.reviews || []),
+      catchError((error: HttpErrorResponse) => {
+        console.error('Error fetching latest reviews:', error);
+        // Don't show error message for this as it's not critical
+        return throwError(() => error);
+      })
+    );
+  }
+
   addReview(storeId: string, review: Omit<Review, '_id' | 'created_at' | 'updated_at'>): Observable<Review> {
     return this.http.post<Review>(`${environment.apiUrl}/stores/${storeId}/reviews/add`, review)
       .pipe(

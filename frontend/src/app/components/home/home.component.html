@@ -185,34 +185,41 @@
         <p class="section-subtitle">See what our community is saying</p>
       </div>
       
+      <div *ngIf="loadingReviews" class="loading-container">
+        <div class="spinner-container">
+          <div class="spinner"></div>
+        </div>
+        <p class="loading-text">Loading reviews...</p>
+      </div>
+      
       <div class="review-slider">
-        <div class="review-card" *ngFor="let i of [1, 2, 3]">
+        <div class="review-card" *ngFor="let review of latestReviews">
           <div class="review-header">
-            <div class="reviewer-avatar"></div>
+            <div class="reviewer-avatar" [style.background-image]="'url(' + getUserAvatar(review) + ')'"></div>
             <div class="reviewer-info">
-              <h4 class="reviewer-name">User {{ i }}</h4>
+              <h4 class="reviewer-name">{{ review.user }}</h4>
               <div class="review-rating">
-                <i class="star-icon filled" *ngFor="let star of [1, 2, 3, 4, 5]"></i>
+                <i class="star-icon filled" *ngFor="let star of getStarsArray(review.rating)"></i>
               </div>
-              <p class="review-date">June 15, 2023</p>
+              <p class="review-date">{{ formatDate(review.created_at) }}</p>
             </div>
           </div>
           <div class="review-content">
             <p class="review-text">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam in odio at nisi facilisis scelerisque.
+              {{ review.comment }}
             </p>
           </div>
           <div class="review-footer">
             <div class="review-store-link">
               <span>Store:</span>
-              <a [routerLink]="['/stores', i]">Sample Store {{ i }}</a>
+              <a [routerLink]="['/stores', review.store_id]">{{ review.store_name }}</a>
             </div>
           </div>
         </div>
       </div>
       
       <div class="text-center mt-4">
-        <a routerLink="/stores" class="btn btn-outline-primary">Read More Reviews</a>
+        <a routerLink="/stores" class="btn btn-outline-primary">READ MORE REVIEWS</a>
       </div>
     </div>
   </section>

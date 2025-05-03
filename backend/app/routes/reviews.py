@@ -12,6 +12,19 @@ from app.utils.error_handler import (
 
 reviews_bp = Blueprint('reviews', __name__)
 
+@reviews_bp.route('/reviews/latest', methods=['GET'])
+def get_latest_reviews():
+    """Get the latest reviews across all stores."""
+    try:
+        limit = int(request.args.get('limit', 3))
+        result = review.get_latest_reviews(limit)
+        return jsonify({"reviews": result}), 200
+        
+    except ValueError:
+        raise ValidationError("Invalid limit parameter")
+    except Exception as e:
+        raise ApiError(str(e))
+
 @reviews_bp.route('/stores/<store_id>/reviews', methods=['GET'])
 def get_store_reviews(store_id):
     """Get all reviews for a store."""

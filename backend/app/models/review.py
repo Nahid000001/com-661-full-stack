@@ -3,6 +3,34 @@ from datetime import datetime
 from app import mongo
 from app.models import store
 
+def get_latest_reviews(limit=3):
+    """Get the latest reviews across all stores."""
+    # Fetch all stores
+    stores = list(mongo.db.stores.find())
+    
+    # Extract all reviews from all stores
+    all_reviews = []
+    
+    for store_doc in stores:
+        store_id = store_doc.get("_id")
+        store_name = store_doc.get("company_name", "Unknown Store")
+        
+        # Get all reviews from this store
+        for review in store_doc.get("reviews", []):
+            # Add store information to the review
+            enriched_review = {
+                **review,
+                "store_id": str(store_id),
+                "store_name": store_name
+            }
+            all_reviews.append(enriched_review)
+    
+    # Sort reviews by created_at date (newest first)
+    all_reviews.sort(key=lambda x: x.get("created_at", datetime.min), reverse=True)
+    
+    # Return only the requested number of reviews
+    return all_reviews[:limit]
+
 def get_store_reviews(store_id, page=1, limit=5):
     """Get all reviews for a store with pagination."""
     store_obj = mongo.db.stores.find_one({"_id": ObjectId(store_id)})
