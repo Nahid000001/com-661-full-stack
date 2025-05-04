@@ -3,6 +3,21 @@
   <!-- Navigation Bar -->
   <app-navigation></app-navigation>
   
+  <!-- Admin Toolbar - visible when in admin view and user is admin -->
+  <div *ngIf="isAdmin && isAdminViewMode" class="admin-toolbar">
+    <div class="container">
+      <div class="admin-toolbar-content">
+        <span class="admin-label">Admin Mode</span>
+        <div class="admin-actions">
+          <a routerLink="/admin" class="admin-action">Dashboard</a>
+          <a routerLink="/admin/users" class="admin-action">Manage Users</a>
+          <a routerLink="/admin/reviews" class="admin-action">Review Responses</a>
+          <a routerLink="/admin/stores" class="admin-action">Manage Stores</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  
   <!-- Server Status Indicator -->
   <div *ngIf="serverStatus === 'offline'" class="server-status-indicator offline">
     <div class="container">
@@ -141,6 +156,47 @@
 </div>
 
 <style>
+.admin-toolbar {
+  background-color: #2c3e50;
+  color: white;
+  padding: 8px 0;
+  border-bottom: 2px solid #1abc9c;
+}
+
+.admin-toolbar-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin-label {
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  background-color: #e74c3c;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.admin-actions {
+  display: flex;
+  gap: 15px;
+}
+
+.admin-action {
+  color: white;
+  text-decoration: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  font-size: 0.9rem;
+}
+
+.admin-action:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  text-decoration: none;
+}
+
 .server-status-indicator {
   padding: 0.5rem 0;
   text-align: center;

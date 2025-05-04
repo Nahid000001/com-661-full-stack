@@ -30,6 +30,17 @@
       color: var(--secondary-color);
       margin-left: 5px;
     }
+    
+    .admin-mode-badge {
+      background-color: #e74c3c;
+      color: white;
+      font-size: 0.7rem;
+      font-weight: bold;
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin-left: 10px;
+      text-transform: uppercase;
+    }
   }
   
   .navbar-toggler {
@@ -197,6 +208,59 @@
         height: 1px;
         background-color: var(--border-color);
         margin: 0.5rem 0;
+      }
+    }
+  }
+}
+
+// View Mode Toggle
+.view-mode-toggle-container {
+  padding: 0.5rem 1rem;
+  
+  .view-mode-label {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+  }
+  
+  .view-mode-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .view-mode-btn {
+    padding: 0.4rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    
+    &:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    }
+    
+    &.admin-mode {
+      background-color: #007bff;
+      color: white;
+      
+      &:hover {
+        background-color: #0069d9;
+      }
+    }
+    
+    &.user-mode {
+      background-color: #17a2b8;
+      color: white;
+      
+      &:hover {
+        background-color: #138496;
       }
     }
   }

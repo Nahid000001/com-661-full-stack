@@ -11,6 +11,8 @@ import { LoadingSpinnerComponent } from './components/loading-spinner/loading-sp
 import { HealthCheckComponent } from './components/health-check/health-check.component';
 import { Subscription, interval } from 'rxjs';
 import { takeWhile, tap } from 'rxjs/operators';
+import { ViewModeService, ViewMode } from './services/view-mode.service';
+import { AuthService } from './services/auth.service';
 
 @Component({
   selector: 'app-root',
@@ -30,22 +32,30 @@ export class AppComponent implements OnInit, OnDestroy {
   title = 'Clothing Store Reviews';
   isLoading = false;
   isAdminRoute = false;
+  isAdminViewMode = false;
+  isAdmin = false;
   serverStatus: ServerStatus = 'checking';
   currentYear = new Date().getFullYear();
   private loadingSubscription!: Subscription;
   private routerSubscription!: Subscription;
   private serverStatusSubscription!: Subscription;
   private healthCheckSubscription!: Subscription;
+  private viewModeSubscription!: Subscription;
   private alive = true;
   public healthService = inject(HealthService);
 
   constructor(
     private loadingService: LoadingService,
     private router: Router,
-    private errorService: ErrorService
+    private errorService: ErrorService,
+    private viewModeService: ViewModeService,
+    private authService: AuthService
   ) {}
 
   ngOnInit() {
+    // Check if user is admin
+    this.isAdmin = this.authService.hasRole('admin');
+    
     // Subscribe to loading status
     this.loadingSubscription = this.loadingService.loading$.subscribe(
       loading => this.isLoading = loading
@@ -63,6 +73,11 @@ export class AppComponent implements OnInit, OnDestroy {
         }
       }
     );
+
+    // Subscribe to view mode changes
+    this.viewModeSubscription = this.viewModeService.getViewMode().subscribe(mode => {
+      this.isAdminViewMode = mode === ViewMode.Admin;
+    });
     
     // Check server health every 30 seconds
     this.healthCheckSubscription = interval(30000)
@@ -121,6 +136,9 @@ export class AppComponent implements OnInit, OnDestroy {
     }
     if (this.healthCheckSubscription) {
       this.healthCheckSubscription.unsubscribe();
+    }
+    if (this.viewModeSubscription) {
+      this.viewModeSubscription.unsubscribe();
     }
   }
 }

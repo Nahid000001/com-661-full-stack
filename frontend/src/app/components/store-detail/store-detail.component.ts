@@ -22,7 +22,39 @@ import { StoreMapComponent } from '../store-map/store-map.component';
     StoreMapComponent
   ],
   templateUrl: './store-detail.component.html',
-  styleUrls: ['./store-detail.component.scss']
+  styleUrls: ['./store-detail.component.scss'],
+  styles: [`
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1050;
+    }
+    
+    .modal.show {
+      display: block;
+    }
+    
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1040;
+    }
+    
+    .modal-dialog {
+      position: relative;
+      margin: 1.75rem auto;
+      max-width: 500px;
+      z-index: 1060;
+    }
+  `]
 })
 export class StoreDetailComponent implements OnInit {
   storeId: string = '';
@@ -72,6 +104,11 @@ export class StoreDetailComponent implements OnInit {
     private authService: AuthService,
     private fb: FormBuilder
   ) {
+    // Reset modal states on component initialization
+    this.showEditModal = false;
+    this.showDeleteModal = false;
+    this.showEditForm = false;
+    
     this.editForm = this.fb.group({
       company_name: ['', [Validators.required, Validators.minLength(2)]],
       location: ['', Validators.required],
@@ -85,6 +122,11 @@ export class StoreDetailComponent implements OnInit {
   Math = Math;
 
   ngOnInit() {
+    // Make sure modals are closed
+    this.showEditModal = false;
+    this.showDeleteModal = false;
+    this.showEditForm = false;
+
     this.storeId = this.route.snapshot.paramMap.get('id') || '';
     
     if (this.storeId) {
@@ -104,6 +146,9 @@ export class StoreDetailComponent implements OnInit {
       .subscribe({
         next: (data) => {
           this.store = data;
+          console.log('Store data loaded:', this.store);
+          console.log('Store location:', this.store.location);
+          
           this.loadReviews();
           this.loading = false;
           
@@ -136,24 +181,34 @@ export class StoreDetailComponent implements OnInit {
       this.isLoggedIn = !!user;
       
       if (user && user.token) {
+        // Add debug logging
+        console.log('Current user:', user);
         const payload = this.authService.decodeToken(user.token);
-        const userId = payload?.sub || payload?.userId; // Make sure we get the correct user ID
+        console.log('Token payload:', payload);
         
+        // Check admin status first using the auth service's hasRole method
         this.isAdmin = this.authService.hasRole('admin');
         
-        // Only set isOwner to true if:
-        // 1. The user is the specific owner of this store (userId matches store.owner), OR
-        // 2. The user has admin role (already checked above)
+        const userId = payload?.sub || payload?.userId || null; // Make sure we get the correct user ID
+        
+        console.log('Current user role:', payload?.role);
+        console.log('Is admin:', this.isAdmin);
+        
+        // If store data is available, check ownership
         if (this.store) {
-          this.isOwner = this.isAdmin || userId === this.store.owner;
+          this.isOwner = this.isAdmin || (userId && userId === this.store.owner);
+          console.log('Is owner:', this.isOwner, 'userId:', userId, 'store.owner:', this.store.owner);
         } else {
+          // If store data isn't loaded yet, get it
           this.storeService.getStoreById(this.storeId).subscribe(store => {
-            this.isOwner = this.isAdmin || userId === store.owner;
+            this.isOwner = this.isAdmin || (userId && userId === store.owner);
+            console.log('Is owner (from API):', this.isOwner, 'userId:', userId, 'store.owner:', store.owner);
           });
         }
       } else {
         this.isAdmin = false;
         this.isOwner = false;
+        console.log('User not logged in or no token available');
       }
     });
   }
@@ -327,22 +382,28 @@ export class StoreDetailComponent implements OnInit {
   }
 
   deleteStore() {
+    console.log('Delete store button clicked');
     this.showDeleteModal = true;
     this.deleteError = '';
+    console.log('Delete modal visibility:', this.showDeleteModal);
   }
 
   cancelDelete() {
+    console.log('Cancel delete button clicked');
     this.showDeleteModal = false;
     this.deleteError = '';
   }
 
   confirmDelete() {
+    console.log('Confirm delete button clicked');
     this.deleting = true;
     this.deleteError = '';
     
+    console.log('Attempting to delete store with ID:', this.storeId);
     this.storeService.deleteStore(this.storeId)
       .subscribe({
         next: () => {
+          console.log('Store deleted successfully');
           this.router.navigate(['/stores']);
         },
         error: (error) => {

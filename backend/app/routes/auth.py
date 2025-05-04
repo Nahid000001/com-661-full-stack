@@ -42,7 +42,8 @@ def register():
         password=data.get('password'),
         first_name=data.get('first_name'),
         last_name=data.get('last_name'),
-        username=data.get('username')
+        username=data.get('username'),
+        role=data.get('role', 'customer')  # Allow setting role during registration
     )
     
     return jsonify({"msg": "User created successfully", "user_id": user_id}), 201
@@ -72,10 +73,14 @@ def login():
         fresh=True,
         additional_claims={
             "email": user.get('email', ''),
-            "username": user.get('username', '')
+            "username": user.get('username', ''),
+            "role": user.get('role', 'customer')  # Include role in token
         }
     )
-    refresh_token = create_refresh_token(identity=str(user['_id']))
+    refresh_token = create_refresh_token(
+        identity=str(user['_id']),
+        additional_claims={"role": user.get('role', 'customer')}  # Include role in refresh token
+    )
     
     return jsonify({
         "access_token": access_token,
@@ -85,7 +90,8 @@ def login():
             "email": user.get('email', ''),
             "first_name": user.get('first_name', ''),
             "last_name": user.get('last_name', ''),
-            "username": user.get('username', '')
+            "username": user.get('username', ''),
+            "role": user.get('role', 'customer')  # Include role in response
         }
     }), 200
 
@@ -95,9 +101,23 @@ def login():
 def refresh():
     """Refresh access token"""
     identity = get_jwt_identity()
+    
+    # Get user info to include role in new token
+    user = User.get_user_by_id(identity)
+    if not user:
+        return jsonify({"msg": "User not found"}), 404
+        
+    # Get claims from refresh token
+    jwt_data = get_jwt()
+    
     access_token = create_access_token(
         identity=identity,
-        fresh=False
+        fresh=False,
+        additional_claims={
+            "email": user.get('email', ''),
+            "username": user.get('username', ''),
+            "role": user.get('role', 'customer')  # Include role in new access token
+        }
     )
     
     return jsonify({"access_token": access_token}), 200

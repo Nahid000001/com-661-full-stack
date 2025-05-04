@@ -1,5 +1,7 @@
 import { Component, Input, OnInit, ElementRef, ViewChild, AfterViewInit, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { AuthService } from '../../services/auth.service';
+import { environment } from '../../../environments/environment';
 
 // Extend Window interface to include google property
 declare global {
@@ -23,7 +25,12 @@ declare const google: any;
         <div class="error-icon">!</div>
         <div class="error-text">
           <h3>Sorry! Something went wrong.</h3>
-          <p>This page didn't load Google Maps correctly. Please try refreshing the page.</p>
+          <p>This page didn't load Google Maps correctly.</p>
+          <p *ngIf="errorMessage">Error: {{ errorMessage }}</p>
+          <button class="retry-button" (click)="retryLoadMap()">Retry Loading Map</button>
+          <div *ngIf="isAdmin" class="admin-options">
+            <p class="admin-tip">Admin tip: You might need to check the Google Maps API key or billing status.</p>
+          </div>
         </div>
       </div>
     </div>
@@ -75,6 +82,31 @@ declare const google: any;
     .error-text p {
       font-size: 14px;
       color: #666;
+      margin-bottom: 15px;
+    }
+    .retry-button {
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+    .retry-button:hover {
+      background-color: #3367d6;
+    }
+    .admin-options {
+      margin-top: 15px;
+      padding: 10px;
+      background-color: rgba(0,0,0,0.05);
+      border-radius: 4px;
+    }
+    .admin-tip {
+      color: #d32f2f;
+      font-size: 13px;
+      margin: 0;
     }
   `]
 })
@@ -85,15 +117,23 @@ export class StoreMapComponent implements OnInit, AfterViewInit {
   private map: any;
   private geocoder: any;
   loadError: boolean = false;
+  errorMessage: string = '';
+  isAdmin: boolean = false;
   private mapInitialized: boolean = false;
   private scriptLoadAttempted: boolean = false;
   
-  // Google Maps API Key - use environment variable in production
-  private readonly apiKey = 'AIzaSyDYIJNwoGmGS9wD0csiiQo4ut9Ie00dgSM';
+  // Google Maps API Key - use environment variable
+  private readonly apiKey = environment.googleMapsApiKey || '';
   
-  constructor(private ngZone: NgZone) {}
+  constructor(private ngZone: NgZone, private authService: AuthService) {}
 
   ngOnInit() {
+    console.log('StoreMapComponent initialized with location:', this.location);
+    console.log('Google Maps API Key:', this.apiKey);
+    
+    // Check if user is admin
+    this.isAdmin = this.authService.hasRole('admin');
+    
     // Wait a brief moment before trying to load Google Maps
     // This helps ensure the DOM is ready
     setTimeout(() => {
@@ -145,15 +185,16 @@ export class StoreMapComponent implements OnInit, AfterViewInit {
     // Create script element
     const script = document.createElement('script');
     script.type = 'text/javascript';
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${this.apiKey}&callback=${callbackName}`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${this.apiKey}&callback=${callbackName}&loading=async`;
     script.async = true;
     script.defer = true;
     
     // Add error handling
-    script.onerror = () => {
+    script.onerror = (error) => {
       this.ngZone.run(() => {
         this.loadError = true;
-        console.error('Google Maps script failed to load');
+        this.errorMessage = 'Failed to load Google Maps script';
+        console.error('Google Maps script failed to load:', error);
       });
     };
     
@@ -162,6 +203,7 @@ export class StoreMapComponent implements OnInit, AfterViewInit {
       if (!window.google || !window.google.maps) {
         this.ngZone.run(() => {
           this.loadError = true;
+          this.errorMessage = 'Google Maps script load timed out';
           console.error('Google Maps script load timed out');
         });
       }
@@ -172,6 +214,7 @@ export class StoreMapComponent implements OnInit, AfterViewInit {
       clearTimeout(timeoutId);
     };
     
+    console.log('Adding Google Maps script to head with API key:', this.apiKey);
     // Append the script to the document head
     document.head.appendChild(script);
   }
@@ -192,10 +235,12 @@ export class StoreMapComponent implements OnInit, AfterViewInit {
     if (!window.google || !window.google.maps) {
       console.log('Google Maps API not available');
       this.loadError = true;
+      this.errorMessage = 'Google Maps API not available';
       return;
     }
     
     try {
+      console.log('Initializing map with location:', this.location);
       this.mapInitialized = true;
       this.geocoder = new google.maps.Geocoder();
       
@@ -217,10 +262,28 @@ export class StoreMapComponent implements OnInit, AfterViewInit {
       
       // Only proceed with geocoding if we have a location
       if (this.location && this.location.trim() !== '') {
-        this.geocoder.geocode({ address: this.location }, (results: any, status: any) => {
+        console.log('Geocoding location:', this.location);
+        
+        // Try to make the location more specific for geocoding by adding country
+        let searchAddress = this.location;
+        
+        // If no country is specified, add United Kingdom as a fallback
+        if (!searchAddress.toLowerCase().includes('uk') && 
+            !searchAddress.toLowerCase().includes('united kingdom') &&
+            !searchAddress.toLowerCase().includes('england') &&
+            !searchAddress.toLowerCase().includes('scotland') &&
+            !searchAddress.toLowerCase().includes('wales')) {
+          searchAddress += ', United Kingdom';
+        }
+        
+        console.log('Using search address for geocoding:', searchAddress);
+        
+        this.geocoder.geocode({ address: searchAddress }, (results: any, status: any) => {
           this.ngZone.run(() => {
+            console.log('Geocoding results:', status, results);
             if (status === 'OK' && results && results[0]) {
               const location = results[0].geometry.location;
+              console.log('Found coordinates:', location.lat(), location.lng());
               
               // Update map center and zoom
               this.map.setCenter(location);
@@ -233,13 +296,22 @@ export class StoreMapComponent implements OnInit, AfterViewInit {
                 title: this.location,
                 animation: google.maps.Animation.DROP
               });
+              
+              // Clear any error state since we found the location
+              this.loadError = false;
+              this.errorMessage = '';
             } else {
               console.error('Geocoding failed:', status);
-              // Keep the default map centered on London
+              this.errorMessage = `Geocoding failed: ${status}`;
+              this.loadError = true;
+              
+              // Try with manual coordinates for common locations as fallback
+              this.tryFallbackLocation();
             }
           });
         });
       } else {
+        console.log('No location provided, using default (London)');
         // Add marker for default location (London)
         new google.maps.Marker({
           map: this.map,
@@ -251,6 +323,75 @@ export class StoreMapComponent implements OnInit, AfterViewInit {
     } catch (error) {
       console.error('Error initializing map:', error);
       this.loadError = true;
+      this.errorMessage = error instanceof Error ? error.message : 'Unknown error initializing map';
     }
+  }
+  
+  // Add a method to try fallback locations for common cities
+  private tryFallbackLocation() {
+    // Map of common locations to their coordinates
+    const locationMap: {[key: string]: {lat: number, lng: number}} = {
+      'london': { lat: 51.5074, lng: -0.1278 },
+      'manchester': { lat: 53.4808, lng: -2.2426 },
+      'birmingham': { lat: 52.4862, lng: -1.8904 },
+      'liverpool': { lat: 53.4084, lng: -2.9916 },
+      'leeds': { lat: 53.8008, lng: -1.5491 },
+      'glasgow': { lat: 55.8642, lng: -4.2518 },
+      'edinburgh': { lat: 55.9533, lng: -3.1883 },
+      'bristol': { lat: 51.4545, lng: -2.5879 },
+      'cardiff': { lat: 51.4816, lng: -3.1791 },
+      'newcastle': { lat: 54.9783, lng: -1.6178 }
+    };
+    
+    // Check if the location contains any of our known cities
+    const lowerCaseLocation = this.location.toLowerCase();
+    
+    for (const [city, coords] of Object.entries(locationMap)) {
+      if (lowerCaseLocation.includes(city)) {
+        console.log(`Found fallback coordinates for ${city}`);
+        
+        // Set map to these coordinates
+        this.map.setCenter(coords);
+        this.map.setZoom(12);
+        
+        // Add a marker
+        new google.maps.Marker({
+          map: this.map,
+          position: coords,
+          title: this.location,
+          animation: google.maps.Animation.DROP
+        });
+        
+        // Clear error state since we found a fallback
+        this.loadError = false;
+        this.errorMessage = '';
+        return;
+      }
+    }
+    
+    // If we get here, we couldn't find a fallback
+    console.log('No fallback location found for:', this.location);
+  }
+  
+  retryLoadMap() {
+    console.log('Retrying map load...');
+    this.loadError = false;
+    this.errorMessage = '';
+    this.scriptLoadAttempted = false;
+    this.mapInitialized = false;
+    
+    // Try to remove existing Google Maps script tag if it exists
+    const existingScripts = document.querySelectorAll('script[src*="maps.googleapis.com"]');
+    existingScripts.forEach(script => script.remove());
+    
+    // Clear any existing callback references
+    for (const key in window) {
+      if (key.startsWith('googleMapsInitialize_')) {
+        delete window[key];
+      }
+    }
+    
+    // Load the map again
+    this.loadGoogleMapsScript();
   }
 } 

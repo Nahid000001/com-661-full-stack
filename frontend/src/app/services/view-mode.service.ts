@@ -14,10 +14,20 @@ export class ViewModeService {
   private viewModeSubject = new BehaviorSubject<ViewMode>(ViewMode.Admin);
   
   constructor() {
+    this.initializeViewMode();
+  }
+  
+  // Initialize view mode based on localStorage or defaults
+  private initializeViewMode(): void {
     // Try to load saved preference from localStorage
     const savedMode = localStorage.getItem('viewMode');
     if (savedMode && Object.values(ViewMode).includes(savedMode as ViewMode)) {
       this.viewModeSubject.next(savedMode as ViewMode);
+    } else {
+      // Default to Admin view for admin users
+      // The auth check will happen in components that use this service
+      this.viewModeSubject.next(ViewMode.Admin);
+      localStorage.setItem('viewMode', ViewMode.Admin);
     }
   }
   

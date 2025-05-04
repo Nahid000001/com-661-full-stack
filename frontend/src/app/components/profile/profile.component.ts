@@ -56,6 +56,12 @@ export class ProfileComponent implements OnInit {
     this.userService.getCurrentUser().subscribe({
       next: (userData) => {
         this.user = userData;
+        
+        // Ensure role is admin for the current user if needed
+        if (userData.role !== 'admin' && this.authService.hasRole('admin')) {
+          this.updateUserRole('admin');
+        }
+        
         this.profileForm.patchValue({
           first_name: userData.first_name || '',
           last_name: userData.last_name || '',
@@ -95,12 +101,42 @@ export class ProfileComponent implements OnInit {
       }
     });
   }
+  
+  updateUserRole(role: string): void {
+    if (!this.user || !this.user._id) return;
+    
+    this.loading = true;
+    this.error = '';
+    
+    const userData = { role: role };
+    
+    this.userService.updateUser(this.user._id, userData).subscribe({
+      next: (updatedUser) => {
+        this.user = updatedUser;
+        // Update the auth service with the new role
+        if (this.authService.currentUserValue) {
+          const currentUser = this.authService.currentUserValue;
+          currentUser.role = role;
+          this.authService.updateCurrentUser(currentUser);
+        }
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error updating user role:', error);
+        this.error = error.message || 'Failed to update role';
+        this.loading = false;
+      }
+    });
+  }
 
   toggleViewMode(mode: ViewMode): void {
+    // Set the new view mode in the service
     this.viewModeService.setViewMode(mode);
+    
+    // No need to manually update viewMode here as we're subscribed to the service
   }
 
   isAdmin(): boolean {
-    return this.user?.role === 'admin';
+    return this.user?.role === 'admin' || this.authService.hasRole('admin');
   }
 } 

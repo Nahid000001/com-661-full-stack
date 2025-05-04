@@ -5,6 +5,7 @@ import { adminGuard } from './guards/admin.guard';
 import { storeOwnerGuard } from './guards/store-owner.guard';
 import { OAuthCallbackComponent } from './components/oauth-callback/oauth-callback.component';
 import { ReviewNotificationsComponent } from './components/profile/review-notifications.component';
+import { AdminCheckComponent } from './components/admin-check/admin-check.component';
 
 export const routes: Routes = [
   { 
@@ -50,6 +51,11 @@ export const routes: Routes = [
   { 
     path: 'health-check',
     loadComponent: () => import('./components/health-check/health-check.component').then(m => m.HealthCheckComponent)
+  },
+  { 
+    path: 'admin-check',
+    component: AdminCheckComponent,
+    canActivate: [authGuard]
   },
   { 
     path: 'profile/review-notifications', 

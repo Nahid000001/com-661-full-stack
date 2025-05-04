@@ -281,18 +281,41 @@ export class AuthService {
   // Check if the current user has a specific role
   hasRole(role: string | string[]): boolean {
     const user = this.currentUserValue;
-    if (!user || !user.token) return false;
-    
-    const payload = this.decodeToken(user.token);
-    const userRole = payload?.role;
-    
-    if (!userRole) return false;
-    
-    if (Array.isArray(role)) {
-      return role.includes(userRole);
+    console.log('hasRole check - User:', user);
+    if (!user || !user.token) {
+      console.log('hasRole check - No user or token');
+      return false;
     }
     
-    return userRole === role;
+    // First check if role is directly in the user object (for workarounds)
+    if (user.role) {
+      console.log('hasRole check - Using role from user object:', user.role);
+      if (Array.isArray(role)) {
+        return role.includes(user.role);
+      }
+      return user.role === role;
+    }
+    
+    // Then check token payload
+    const payload = this.decodeToken(user.token);
+    console.log('hasRole check - Token payload:', payload);
+    const userRole = payload?.role;
+    console.log('hasRole check - User role:', userRole, 'Checking for role:', role);
+    
+    if (!userRole) {
+      console.log('hasRole check - No role found in token');
+      return false;
+    }
+    
+    if (Array.isArray(role)) {
+      const hasRequiredRole = role.includes(userRole);
+      console.log('hasRole check - Array check result:', hasRequiredRole);
+      return hasRequiredRole;
+    }
+    
+    const hasRequiredRole = userRole === role;
+    console.log('hasRole check - String check result:', hasRequiredRole);
+    return hasRequiredRole;
   }
 }
 

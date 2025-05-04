@@ -66,8 +66,39 @@ export class ReviewListComponent implements OnInit {
           // Map the reviews to add userName if it doesn't exist
           mergeMap(data => {
             const reviews = data.reviews || [];
+            // Ensure dates are properly formatted
+            const processedReviews = reviews.map(review => {
+              // Convert string dates to Date objects
+              if (review.created_at && typeof review.created_at === 'string') {
+                review.created_at = new Date(review.created_at);
+              }
+              if (review.updated_at && typeof review.updated_at === 'string') {
+                review.updated_at = new Date(review.updated_at);
+              }
+              
+              // Process replies if they exist
+              if (review.replies && Array.isArray(review.replies)) {
+                review.replies = review.replies.map(reply => {
+                  if (reply.created_at && typeof reply.created_at === 'string') {
+                    reply.created_at = new Date(reply.created_at);
+                  }
+                  if (reply.updated_at && typeof reply.updated_at === 'string') {
+                    reply.updated_at = new Date(reply.updated_at);
+                  }
+                  return reply;
+                });
+              }
+              
+              // Process old reply format if it exists
+              if (review.reply && review.reply.createdAt && typeof review.reply.createdAt === 'string') {
+                review.reply.createdAt = new Date(review.reply.createdAt);
+              }
+              
+              return review;
+            });
+            
             // For each review that doesn't have a userName, try to get the user info
-            const reviewsWithUserNames = reviews.map(review => {
+            const reviewsWithUserNames = processedReviews.map(review => {
               // If the review already has userName, use it
               if (review.userName) {
                 return of(review);
@@ -110,7 +141,7 @@ export class ReviewListComponent implements OnInit {
                 totalPages: data.totalPages || Math.ceil(data.total / (data.pageSize || this.pageSize))
               })),
               catchError(() => of({
-                reviews: reviews.map(r => ({ 
+                reviews: processedReviews.map(r => ({ 
                   ...r, 
                   userName: r.userName || r.userId || r.user || 'Anonymous' 
                 })),
@@ -131,11 +162,39 @@ export class ReviewListComponent implements OnInit {
           }
         );
     } else {
-      // If reviews are provided via Input, ensure they all have userName
-      this.reviews = this.reviews.map(r => ({ 
-        ...r, 
-        userName: r.userName || r.userId || r.user || 'Anonymous' 
-      }));
+      // If reviews are provided via Input, ensure they all have userName and proper date handling
+      this.reviews = this.reviews.map(r => {
+        // Ensure dates are Date objects
+        if (r.created_at && typeof r.created_at === 'string') {
+          r.created_at = new Date(r.created_at);
+        }
+        if (r.updated_at && typeof r.updated_at === 'string') {
+          r.updated_at = new Date(r.updated_at);
+        }
+        
+        // Process replies
+        if (r.replies && Array.isArray(r.replies)) {
+          r.replies = r.replies.map(reply => {
+            if (reply.created_at && typeof reply.created_at === 'string') {
+              reply.created_at = new Date(reply.created_at);
+            }
+            if (reply.updated_at && typeof reply.updated_at === 'string') {
+              reply.updated_at = new Date(reply.updated_at);
+            }
+            return reply;
+          });
+        }
+        
+        // Process old reply format
+        if (r.reply && r.reply.createdAt && typeof r.reply.createdAt === 'string') {
+          r.reply.createdAt = new Date(r.reply.createdAt);
+        }
+        
+        return {
+          ...r,
+          userName: r.userName || r.userId || r.user || 'Anonymous'
+        };
+      });
     }
   }
   
@@ -165,8 +224,10 @@ export class ReviewListComponent implements OnInit {
   }
   
   canReplyToReview(): boolean {
-    const currentUser = this.authService.currentUserValue;
-    return currentUser && (this.isAdmin || this.isOwner);
+    // Admin or store owner can reply to reviews, this is simplified since isAdmin and isOwner
+    // are already passed from the parent component
+    console.log('Can reply to review check - isAdmin:', this.isAdmin, 'isOwner:', this.isOwner);
+    return this.isAdmin || this.isOwner;
   }
   
   startEdit(review: Review): void {
@@ -255,18 +316,51 @@ export class ReviewListComponent implements OnInit {
   submitReply(reviewId: string): void {
     if (this.replyForm.invalid) return;
     
-    this.reviewService.replyToReview(this.storeId, reviewId, this.replyForm.value.reply, this.isAdmin)
-      .subscribe(
-        () => {
-          this.replyingTo = null;
-          this.loadReviews();
-          this.reviewUpdated.emit({updated: true});
+    const replyText = this.replyForm.get('reply')?.value;
+    if (!replyText) return;
+    
+    console.log(`Submitting reply as ${this.isAdmin ? 'admin' : 'owner'}`);
+    
+    // Get user ID and ensure it's not null
+    const userId = this.authService.getUserId() || 'unknown';
+    
+    this.reviewService.replyToReview(this.storeId, reviewId, replyText, this.isAdmin)
+      .subscribe({
+        next: (updatedReview) => {
+          // Find the review in the array and update it
+          const reviewIndex = this.reviews.findIndex(r => r._id === reviewId);
+          if (reviewIndex !== -1) {
+            // If the review doesn't have replies array, create it
+            if (!this.reviews[reviewIndex].replies) {
+              this.reviews[reviewIndex].replies = [];
+            }
+            
+            // Add the new reply to the review
+            const newReply = {
+              reply_id: new Date().getTime().toString(), // Temporary ID until we get the real one
+              text: replyText,
+              user: userId,
+              isAdmin: this.isAdmin,
+              created_at: new Date()
+            };
+            
+            this.reviews[reviewIndex].replies.push(newReply);
+            
+            // Reset form and exit reply mode
+            this.replyForm.reset();
+            this.replyingTo = null;
+            
+            // Notify parent component about the update
+            this.reviewUpdated.emit({
+              updated: true,
+              review: this.reviews[reviewIndex]
+            });
+          }
         },
-        (err: any) => {
-          this.error = 'Failed to submit reply. Please try again.';
-          console.error(err);
+        error: (error) => {
+          console.error('Error replying to review:', error);
         }
-      );
+      });
   }
   
   getInitials(userName: string | undefined): string {
@@ -322,13 +416,11 @@ export class ReviewListComponent implements OnInit {
     const currentUser = this.authService.currentUserValue;
     if (!currentUser) return false;
     
-    // Admins can edit any reply
-    if (this.isAdmin) return true;
+    // If user is admin, they can edit any reply made by an admin
+    if (this.isAdmin && reply.isAdmin) return true;
     
-    // Store owners can only edit their own replies
-    if (this.isOwner) {
-      return currentUser.id === reply.user;
-    }
+    // If user is store owner, they can edit any reply made by a store owner
+    if (this.isOwner && !reply.isAdmin) return true;
     
     return false;
   }
@@ -340,10 +432,8 @@ export class ReviewListComponent implements OnInit {
     // Admins can delete any reply
     if (this.isAdmin) return true;
     
-    // Store owners can only delete their own replies
-    if (this.isOwner) {
-      return currentUser.id === reply.user;
-    }
+    // Store owners can only delete their own replies (non-admin replies)
+    if (this.isOwner && !reply.isAdmin) return true;
     
     return false;
   }

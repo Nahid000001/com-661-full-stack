@@ -15,14 +15,22 @@
   </div>
   
   <div *ngIf="user && !loading" class="profile-details">
-    <!-- View mode toggle for admins -->
-    <div *ngIf="isAdmin()" class="view-mode-toggle">
-      <div class="toggle-container">
+    <!-- View mode toggle for admins - always visible -->
+    <div *ngIf="isAdmin()" class="view-mode-container">
+      <div class="view-mode-toggle">
         <span>View Mode:</span>
         <select class="view-mode-select" [ngModel]="viewMode" (ngModelChange)="toggleViewMode($event)">
           <option [value]="viewModes.Admin">Admin View</option>
           <option [value]="viewModes.User">User View</option>
         </select>
+      </div>
+    </div>
+    
+    <!-- User view notification banner -->
+    <div *ngIf="isAdmin() && viewMode === viewModes.User" class="user-view-banner">
+      <div class="banner-content">
+        <span>👁️ You are viewing as a user</span>
+        <button class="back-to-admin-btn" (click)="toggleViewMode(viewModes.Admin)">Back to Admin View</button>
       </div>
     </div>
     
@@ -37,8 +45,8 @@
       </div>
     </div>
     
-    <!-- Admin controls section - only visible in admin view -->
-    <div *ngIf="viewMode === viewModes.Admin && isAdmin()" class="admin-controls">
+    <!-- Admin controls section - only visible in Admin View -->
+    <div *ngIf="isAdmin() && viewMode === viewModes.Admin" class="admin-controls">
       <h4>Admin Controls</h4>
       <div class="admin-links">
         <button routerLink="/admin/users" class="admin-link">Manage Users</button>
@@ -51,52 +59,33 @@
     <form [formGroup]="profileForm" (ngSubmit)="updateProfile()" class="profile-form">
       <div class="form-group">
         <label for="first_name">First Name</label>
-        <input 
-          type="text" 
-          id="first_name" 
-          formControlName="first_name" 
-          class="form-control"
-          [ngClass]="{'invalid': profileForm.get('first_name')?.invalid && profileForm.get('first_name')?.touched}"
-        >
-        <div *ngIf="profileForm.get('first_name')?.invalid && profileForm.get('first_name')?.touched" class="validation-error">
+        <input type="text" id="first_name" formControlName="first_name" class="form-control">
+        <div *ngIf="profileForm.controls['first_name'].invalid && (profileForm.controls['first_name'].dirty || profileForm.controls['first_name'].touched)" class="error-text">
           First name is required
         </div>
       </div>
       
       <div class="form-group">
         <label for="last_name">Last Name</label>
-        <input 
-          type="text" 
-          id="last_name" 
-          formControlName="last_name" 
-          class="form-control"
-          [ngClass]="{'invalid': profileForm.get('last_name')?.invalid && profileForm.get('last_name')?.touched}"
-        >
-        <div *ngIf="profileForm.get('last_name')?.invalid && profileForm.get('last_name')?.touched" class="validation-error">
+        <input type="text" id="last_name" formControlName="last_name" class="form-control">
+        <div *ngIf="profileForm.controls['last_name'].invalid && (profileForm.controls['last_name'].dirty || profileForm.controls['last_name'].touched)" class="error-text">
           Last name is required
         </div>
       </div>
       
       <div class="form-group">
         <label for="email">Email</label>
-        <input 
-          type="email" 
-          id="email" 
-          formControlName="email" 
-          class="form-control"
-          [ngClass]="{'invalid': profileForm.get('email')?.invalid && profileForm.get('email')?.touched}"
-        >
-        <div *ngIf="profileForm.get('email')?.invalid && profileForm.get('email')?.touched" class="validation-error">
-          <span *ngIf="profileForm.get('email')?.errors?.['required']">Email is required</span>
-          <span *ngIf="profileForm.get('email')?.errors?.['email']">Please enter a valid email address</span>
+        <input type="email" id="email" formControlName="email" class="form-control">
+        <div *ngIf="profileForm.controls['email'].invalid && (profileForm.controls['email'].dirty || profileForm.controls['email'].touched)" class="error-text">
+          <span *ngIf="profileForm.controls['email'].errors?.['required']">Email is required</span>
+          <span *ngIf="profileForm.controls['email'].errors?.['email']">Please enter a valid email address</span>
         </div>
       </div>
       
-      <div class="form-actions">
-        <button type="submit" class="btn btn-primary" [disabled]="profileForm.invalid || loading">
-          {{ loading ? 'Updating...' : 'Update Profile' }}
-        </button>
-      </div>
+      <button type="submit" [disabled]="profileForm.invalid || loading" class="update-profile-btn">
+        <span *ngIf="loading">Updating...</span>
+        <span *ngIf="!loading">UPDATE PROFILE</span>
+      </button>
     </form>
   </div>
 </div> 
