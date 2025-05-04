@@ -38,6 +38,13 @@
       <header class="store-header">
         <div class="store-title-container">
           <h1 class="store-title">{{ store.company_name }}</h1>
+          <!-- Add Edit Store button next to the title for admin/owner -->
+          <button *ngIf="isAdmin || isOwner" class="btn btn-sm btn-outline-primary edit-store-btn" (click)="toggleEditForm()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+            </svg>
+            Edit Store
+          </button>
           <div class="store-rating" *ngIf="store.average_rating">
             <div class="stars">
               <span class="star" *ngFor="let i of [0, 1, 2, 3, 4]" [class.filled]="i < Math.floor(store.average_rating)" [class.half-filled]="i === Math.floor(store.average_rating) && store.average_rating % 1 >= 0.5"></span>
@@ -60,21 +67,117 @@
         </div>
       </header>
 
+      <!-- Collapsible Edit Store Form -->
+      <div *ngIf="(isAdmin || isOwner) && showEditForm" class="edit-store-container">
+        <div class="edit-store-form">
+          <form [formGroup]="editForm" (ngSubmit)="submitEdit()">
+            <div class="form-group">
+              <label for="inline_company_name">Company Name</label>
+              <input 
+                type="text" 
+                class="form-control" 
+                id="inline_company_name" 
+                formControlName="company_name"
+                [ngClass]="{'is-invalid': editForm.get('company_name')?.invalid && (editForm.get('company_name')?.dirty || editForm.get('company_name')?.touched)}"
+              >
+              <div *ngIf="editForm.get('company_name')?.invalid && (editForm.get('company_name')?.dirty || editForm.get('company_name')?.touched)" class="invalid-feedback">
+                <div *ngIf="editForm.get('company_name')?.errors?.['required']">Company name is required.</div>
+                <div *ngIf="editForm.get('company_name')?.errors?.['minlength']">Company name must be at least 2 characters.</div>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="inline_title">Title</label>
+              <input 
+                type="text" 
+                class="form-control" 
+                id="inline_title" 
+                formControlName="title"
+                [ngClass]="{'is-invalid': editForm.get('title')?.invalid && (editForm.get('title')?.dirty || editForm.get('title')?.touched)}"
+              >
+              <div *ngIf="editForm.get('title')?.invalid && (editForm.get('title')?.dirty || editForm.get('title')?.touched)" class="invalid-feedback">
+                <div *ngIf="editForm.get('title')?.errors?.['required']">Title is required.</div>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="inline_location">Location</label>
+              <input 
+                type="text" 
+                class="form-control" 
+                id="inline_location" 
+                formControlName="location"
+                [ngClass]="{'is-invalid': editForm.get('location')?.invalid && (editForm.get('location')?.dirty || editForm.get('location')?.touched)}"
+              >
+              <div *ngIf="editForm.get('location')?.invalid && (editForm.get('location')?.dirty || editForm.get('location')?.touched)" class="invalid-feedback">
+                <div *ngIf="editForm.get('location')?.errors?.['required']">Location is required.</div>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="inline_work_type">Work Type</label>
+              <select 
+                class="form-control" 
+                id="inline_work_type" 
+                formControlName="work_type"
+                [ngClass]="{'is-invalid': editForm.get('work_type')?.invalid && (editForm.get('work_type')?.dirty || editForm.get('work_type')?.touched)}"
+              >
+                <option value="retail">Retail</option>
+                <option value="manufacturing">Manufacturing</option>
+                <option value="wholesale">Wholesale</option>
+                <option value="online">Online</option>
+              </select>
+              <div *ngIf="editForm.get('work_type')?.invalid && (editForm.get('work_type')?.dirty || editForm.get('work_type')?.touched)" class="invalid-feedback">
+                <div *ngIf="editForm.get('work_type')?.errors?.['required']">Work type is required.</div>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="inline_description">Description</label>
+              <textarea 
+                class="form-control" 
+                id="inline_description" 
+                rows="3" 
+                formControlName="description"
+                [ngClass]="{'is-invalid': editForm.get('description')?.invalid && (editForm.get('description')?.dirty || editForm.get('description')?.touched)}"
+              ></textarea>
+              <div *ngIf="editForm.get('description')?.invalid && (editForm.get('description')?.dirty || editForm.get('description')?.touched)" class="invalid-feedback">
+                <div *ngIf="editForm.get('description')?.errors?.['required']">Description is required.</div>
+                <div *ngIf="editForm.get('description')?.errors?.['minlength']">Description must be at least 10 characters.</div>
+              </div>
+            </div>
+            
+            <div class="form-group" *ngIf="formError">
+              <div class="alert alert-danger">{{ formError }}</div>
+            </div>
+            
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" (click)="toggleEditForm()">Cancel</button>
+              <button type="submit" class="btn btn-primary" [disabled]="editForm.invalid || updating">
+                <span *ngIf="updating" class="spinner-border spinner-border-sm mr-1"></span>
+                Save Changes
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
       <div class="store-main-content">
         <!-- Left Column: Store Info -->
         <div class="store-info-column">
           <!-- Image Gallery -->
           <div class="store-gallery">
             <div class="gallery-main">
-              <img [src]="getMainImage()" alt="{{ store.company_name }}" class="main-image">
+              <img [src]="getMainImage()" alt="{{ store.company_name }}" class="main-image" (error)="handleImageError($event)">
             </div>
             <div class="gallery-thumbnails">
-              <img *ngFor="let image of storeImages; let i = index" 
+              <img *ngFor="let image of getStoreGalleryImages(); let i = index" 
                   [src]="image" 
                   alt="Store image {{ i + 1 }}"
                   class="thumbnail"
                   [class.active]="i === currentImageIndex"
-                  (click)="setMainImage(i)">
+                  (click)="setMainImage(i)"
+                  (error)="handleThumbnailError($event, i)">
             </div>
           </div>
 
@@ -199,12 +302,6 @@
           <div *ngIf="isAdmin || isOwner" class="sidebar-card admin-actions">
             <h3>Admin Actions</h3>
             <div class="admin-buttons">
-              <button class="btn btn-primary btn-block" (click)="updateStore()">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-                </svg>
-                Edit Store
-              </button>
               <button class="btn btn-outline-danger btn-block" (click)="deleteStore()">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="3 6 5 6 21 6"></polyline>
@@ -223,7 +320,7 @@
 </div>
 
 <!-- Store Edit Modal -->
-<div class="modal" [class.show]="showEditModal">
+<div class="modal" [class.show]="showEditModal" *ngIf="isAdmin || isOwner">
   <div class="modal-backdrop" (click)="cancelEdit()"></div>
   <div class="modal-dialog">
     <div class="modal-content">
@@ -327,7 +424,7 @@
 </div>
 
 <!-- Store Delete Modal -->
-<div class="modal" [class.show]="showDeleteModal">
+<div class="modal" [class.show]="showDeleteModal" *ngIf="isAdmin || isOwner">
   <div class="modal-backdrop" (click)="cancelDelete()"></div>
   <div class="modal-dialog">
     <div class="modal-content">

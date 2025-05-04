@@ -27,11 +27,8 @@ export class NavigationComponent implements OnInit {
       this.currentUser = user;
       
       if (user && user.token) {
-        const payload = this.authService.decodeToken(user.token);
-        const role = payload?.role || 'customer';
-        
-        this.isAdmin = role === 'admin';
-        this.isStoreOwner = role === 'store_owner';
+        this.isAdmin = this.authService.hasRole('admin');
+        this.isStoreOwner = this.authService.hasRole('store_owner');
       } else {
         this.isAdmin = false;
         this.isStoreOwner = false;

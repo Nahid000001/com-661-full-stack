@@ -1,5 +1,18 @@
 <!-- src/app/components/review-list/review-list.component.html -->
 <div class="reviews-list">
+  <!-- Sorting controls -->
+  <div *ngIf="reviews.length > 0" class="sorting-controls">
+    <h3>Customer Reviews</h3>
+    <div class="sort-select">
+      <select (change)="sortReviews($event)">
+        <option value="newest">Newest First</option>
+        <option value="oldest">Oldest First</option>
+        <option value="highest">Highest Rating</option>
+        <option value="lowest">Lowest Rating</option>
+      </select>
+    </div>
+  </div>
+
   <!-- Empty state when no reviews -->
   <div *ngIf="reviews.length === 0" class="empty-reviews">
     <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -22,14 +35,14 @@
   </div>
   
   <!-- Reviews -->
-  <div *ngFor="let review of reviews" class="review-card">
+  <div *ngFor="let review of reviews" class="review-card" [class.has-response]="review.replies && review.replies.length > 0">
     <!-- Review header section -->
     <div class="review-header">
       <div class="review-avatar">
-        {{ getInitials(review.userName) }}
+        {{ getInitials(review.userName || '') }}
       </div>
       <div class="review-info">
-        <div class="review-user">{{ review.userName }}</div>
+        <div class="review-user">{{ review.userName || 'Anonymous' }}</div>
         <div class="review-date">{{ review.created_at | date:'mediumDate' }}</div>
       </div>
       <div class="review-rating">
@@ -72,12 +85,18 @@
     </div>
     
     <!-- Review actions -->
-    <div *ngIf="editingReview !== review._id && !replyingTo" class="review-actions">
+    <div *ngIf="editingReview !== review._id && !replyingTo && !editingReply" class="review-actions">
       <button *ngIf="canEditReview(review)" class="btn-action edit" (click)="startEdit(review)">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
         </svg>
         Edit
+      </button>
+      <button *ngIf="canReplyToReview() && !(review.replies && review.replies.length > 0)" class="btn-action reply" (click)="startReply(review._id)">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+        </svg>
+        Reply
       </button>
       <button *ngIf="canDeleteReview(review)" class="btn-action delete" (click)="deleteReview(review._id)">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -86,19 +105,13 @@
         </svg>
         Delete
       </button>
-      <button *ngIf="canReplyToReview() && !review.reply && !(review.replies && review.replies.length > 0)" class="btn-action reply" (click)="startReply(review._id)">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-        </svg>
-        Reply
-      </button>
     </div>
     
     <!-- Reply form -->
     <div *ngIf="replyingTo === review._id" class="reply-form">
       <form [formGroup]="replyForm" (ngSubmit)="submitReply(review._id)">
         <div class="form-group">
-          <label for="reply">Your Reply as Owner</label>
+          <label for="reply">{{ isAdmin ? 'Your Reply as Admin' : 'Your Reply as Store Owner' }}</label>
           <textarea formControlName="reply" class="form-control" rows="3" placeholder="Write your response to this review..."></textarea>
         </div>
         <div class="form-actions">
@@ -108,13 +121,90 @@
       </form>
     </div>
     
-    <!-- Owner reply -->
-    <div *ngIf="review.replies && review.replies.length > 0" class="owner-reply">
+    <!-- Reply (old format) -->
+    <div *ngIf="review.reply && (!review.replies || review.replies.length === 0)" class="owner-reply">
+      <div class="reply-badge">{{ review.reply.isAdmin ? 'ADMIN RESPONSE' : 'STORE OWNER RESPONSE' }}</div>
       <div class="reply-header">
-        <div class="owner-label">Owner Response</div>
-        <div class="reply-date">{{ review.replies[0].created_at | date:'mediumDate' }}</div>
+        <div class="avatar">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        </div>
+        <div class="info">
+          <div class="user">{{ review.reply.isAdmin ? 'Admin' : 'Store Owner' }}</div>
+          <div class="date">{{ review.reply.createdAt | date:'mediumDate' }}</div>
+        </div>
       </div>
-      <p>{{ review.replies[0].text }}</p>
+      <p>{{ review.reply.text }}</p>
+    </div>
+    
+    <!-- Replies (new format) -->
+    <div *ngIf="review.replies && review.replies.length > 0" class="replies-container">
+      <div *ngFor="let reply of review.replies" class="owner-reply" [class.editing]="editingReply && editingReply.replyId === reply.reply_id">
+        <div class="reply-badge">{{ reply.isAdmin ? 'ADMIN RESPONSE' : 'STORE OWNER RESPONSE' }}</div>
+        
+        <!-- Reply Content -->
+        <div *ngIf="!editingReply || editingReply.replyId !== reply.reply_id">
+          <div class="reply-header">
+            <div class="avatar">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </div>
+            <div class="info">
+              <div class="user">{{ reply.isAdmin ? 'Admin' : 'Store Owner' }}</div>
+              <div class="date">
+                {{ reply.created_at | date:'mediumDate' }}
+                <span *ngIf="reply.updated_at">(Edited)</span>
+              </div>
+            </div>
+          </div>
+          <p>{{ reply.text }}</p>
+          
+          <!-- Reply actions -->
+          <div *ngIf="canEditReply(reply) || canDeleteReply(reply)" class="reply-actions">
+            <button *ngIf="canEditReply(reply)" class="btn-action edit" (click)="startEditReply(review._id, reply)">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+              </svg>
+              Edit
+            </button>
+            <button *ngIf="canDeleteReply(reply)" class="btn-action delete" (click)="deleteReply(review._id, reply.reply_id)">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              Delete
+            </button>
+          </div>
+        </div>
+        
+        <!-- Edit Reply Form -->
+        <div *ngIf="editingReply && editingReply.replyId === reply.reply_id" class="edit-reply-form">
+          <form [formGroup]="replyForm" (ngSubmit)="submitEditReply()">
+            <div class="form-group">
+              <label>Edit Your Response</label>
+              <textarea formControlName="reply" class="form-control" rows="3"></textarea>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn btn-outline-secondary" (click)="cancelEditReply()">Cancel</button>
+              <button type="submit" class="btn btn-primary" [disabled]="replyForm.invalid">Save</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      
+      <!-- Option to edit a reply by adding a new one -->
+      <div *ngIf="canReplyToReview() && review.replies.length > 0 && !replyingTo" class="reply-modify-options">
+        <button class="btn-edit-reply" (click)="startReply(review._id)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+          </svg>
+          Add Another Response
+        </button>
+      </div>
     </div>
   </div>
   

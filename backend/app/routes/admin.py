@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required
-from app.middlewares import role_required
+from app.middlewares.auth import admin_required
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -11,7 +11,7 @@ def home():
 
 @admin_bp.route('/admin/only', methods=['GET'])
 @jwt_required()
-@role_required("admin")
+@admin_required
 def admin_only():
     """Admin-only route."""
     return jsonify({"message": "Admin access granted"}), 200

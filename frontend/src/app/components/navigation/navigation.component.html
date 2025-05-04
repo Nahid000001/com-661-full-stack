@@ -23,6 +23,9 @@
         <li class="nav-item" *ngIf="isAdmin || isStoreOwner">
           <a class="nav-link" routerLink="/stores/add" routerLinkActive="active">Add Store</a>
         </li>
+        <li class="nav-item" *ngIf="isAdmin">
+          <a class="nav-link" routerLink="/admin" routerLinkActive="active">Admin</a>
+        </li>
       </ul>
       
       <ul class="navbar-nav auth-nav">
@@ -51,6 +54,13 @@
                   <circle cx="12" cy="7" r="4"></circle>
                 </svg>
                 Profile
+              </a>
+              <a class="dropdown-item" routerLink="/profile/review-notifications">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                Review Responses
               </a>
               <div class="dropdown-divider"></div>
               <a class="dropdown-item" (click)="logout()" role="button">

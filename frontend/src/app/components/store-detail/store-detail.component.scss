@@ -522,3 +522,67 @@
     }
   }
 }
+
+// Edit Store Button and Form Styles
+.store-title-container {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+
+  .edit-store-btn {
+    padding: 4px 8px;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+
+    svg {
+      margin-right: 2px;
+    }
+  }
+}
+
+.edit-store-container {
+  margin: 1rem 0;
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+  .edit-store-form {
+    form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1rem;
+
+      .form-group {
+        margin-bottom: 1rem;
+      }
+
+      textarea {
+        width: 100%;
+      }
+
+      .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        grid-column: 1 / -1;
+        margin-top: 1rem;
+      }
+    }
+  }
+}
+
+// Responsive styles
+@media (max-width: 768px) {
+  .edit-store-container {
+    .edit-store-form {
+      form {
+        grid-template-columns: 1fr;
+      }
+    }
+  }
+}

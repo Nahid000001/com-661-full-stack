@@ -279,12 +279,20 @@ export class AuthService {
   }
 
   // Check if the current user has a specific role
-  hasRole(role: string): boolean {
+  hasRole(role: string | string[]): boolean {
     const user = this.currentUserValue;
     if (!user || !user.token) return false;
     
     const payload = this.decodeToken(user.token);
-    return payload?.role === role;
+    const userRole = payload?.role;
+    
+    if (!userRole) return false;
+    
+    if (Array.isArray(role)) {
+      return role.includes(userRole);
+    }
+    
+    return userRole === role;
   }
 }
 

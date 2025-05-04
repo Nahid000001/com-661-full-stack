@@ -5,6 +5,9 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { ReviewService } from '../../services/review.service';
 import { AuthService } from '../../services/auth.service';
 import { Review } from '../../models/review.model';
+import { UserService } from '../../services/user.service';
+import { forkJoin, of } from 'rxjs';
+import { catchError, map, mergeMap } from 'rxjs/operators';
 
 @Component({
   selector: 'app-review-list',
@@ -23,6 +26,7 @@ export class ReviewListComponent implements OnInit {
   error: string = '';
   editingReview: string | null = null;
   replyingTo: string | null = null;
+  editingReply: {reviewId: string, replyId: string} | null = null;
   editForm: FormGroup;
   replyForm: FormGroup;
   
@@ -31,9 +35,13 @@ export class ReviewListComponent implements OnInit {
   totalPages: number = 1;
   pageSize: number = 5;
   
+  // Sorting
+  currentSort: string = 'newest';
+  
   constructor(
     private reviewService: ReviewService,
     private authService: AuthService,
+    private userService: UserService,
     private fb: FormBuilder
   ) {
     this.editForm = this.fb.group({
@@ -54,6 +62,64 @@ export class ReviewListComponent implements OnInit {
     // Only load reviews from the service if no reviews were provided via @Input
     if (this.reviews.length === 0) {
       this.reviewService.getStoreReviews(this.storeId, this.currentPage, this.pageSize)
+        .pipe(
+          // Map the reviews to add userName if it doesn't exist
+          mergeMap(data => {
+            const reviews = data.reviews || [];
+            // For each review that doesn't have a userName, try to get the user info
+            const reviewsWithUserNames = reviews.map(review => {
+              // If the review already has userName, use it
+              if (review.userName) {
+                return of(review);
+              }
+              
+              // Get userId safely - make sure it's a string
+              const userId = (review.userId || review.user) as string;
+              if (!userId) {
+                return of({
+                  ...review,
+                  userName: 'Anonymous'
+                });
+              }
+              
+              // Otherwise, try to get the userName from the user ID
+              return this.userService.getUserById(userId)
+                .pipe(
+                  map(user => {
+                    // Add the userName to the review
+                    return {
+                      ...review,
+                      userName: user.email || user.username || userId || 'Anonymous'
+                    };
+                  }),
+                  catchError(() => {
+                    // If we can't get the user info, use the user ID as the name
+                    return of({
+                      ...review,
+                      userName: userId || 'Anonymous'
+                    });
+                  })
+                );
+            });
+            
+            // Wait for all the user info requests to complete
+            return forkJoin(reviewsWithUserNames).pipe(
+              map(updatedReviews => ({
+                reviews: updatedReviews, 
+                total: data.total,
+                totalPages: data.totalPages || Math.ceil(data.total / (data.pageSize || this.pageSize))
+              })),
+              catchError(() => of({
+                reviews: reviews.map(r => ({ 
+                  ...r, 
+                  userName: r.userName || r.userId || r.user || 'Anonymous' 
+                })),
+                total: data.total,
+                totalPages: data.totalPages || Math.ceil(data.total / (data.pageSize || this.pageSize))
+              }))
+            );
+          })
+        )
         .subscribe(
           (data: { reviews: Review[], total: number, totalPages?: number }) => {
             this.reviews = data.reviews;
@@ -64,22 +130,43 @@ export class ReviewListComponent implements OnInit {
             console.error(err);
           }
         );
+    } else {
+      // If reviews are provided via Input, ensure they all have userName
+      this.reviews = this.reviews.map(r => ({ 
+        ...r, 
+        userName: r.userName || r.userId || r.user || 'Anonymous' 
+      }));
     }
   }
   
   canEditReview(review: Review): boolean {
     const currentUser = this.authService.currentUserValue;
-    return currentUser && (currentUser.id === review.userId || this.isAdmin);
+    if (!currentUser) return false;
+    
+    // If user is admin or store owner, they should reply instead of edit
+    if (this.isAdmin || this.isOwner) return false;
+    
+    // Regular users can only edit their own reviews
+    return currentUser.id === review.userId || currentUser.id === review.user;
   }
   
   canDeleteReview(review: Review): boolean {
     const currentUser = this.authService.currentUserValue;
-    return currentUser && (currentUser.id === review.userId || this.isAdmin);
+    if (!currentUser) return false;
+    
+    // Admins can delete any review
+    if (this.isAdmin) return true;
+    
+    // Store owners can delete reviews on their stores
+    if (this.isOwner) return true;
+    
+    // Regular users can only delete their own reviews
+    return currentUser.id === review.userId || currentUser.id === review.user;
   }
   
   canReplyToReview(): boolean {
     const currentUser = this.authService.currentUserValue;
-    return currentUser && this.isOwner;
+    return currentUser && (this.isAdmin || this.isOwner);
   }
   
   startEdit(review: Review): void {
@@ -168,7 +255,7 @@ export class ReviewListComponent implements OnInit {
   submitReply(reviewId: string): void {
     if (this.replyForm.invalid) return;
     
-    this.reviewService.replyToReview(this.storeId, reviewId, this.replyForm.value.reply)
+    this.reviewService.replyToReview(this.storeId, reviewId, this.replyForm.value.reply, this.isAdmin)
       .subscribe(
         () => {
           this.replyingTo = null;
@@ -182,7 +269,7 @@ export class ReviewListComponent implements OnInit {
       );
   }
   
-  getInitials(userName: string): string {
+  getInitials(userName: string | undefined): string {
     if (!userName) return '';
     
     return userName
@@ -198,5 +285,111 @@ export class ReviewListComponent implements OnInit {
     
     this.currentPage = page;
     this.loadReviews();
+  }
+  
+  sortReviews(event: Event): void {
+    const selectElement = event.target as HTMLSelectElement;
+    this.currentSort = selectElement.value;
+    
+    switch (this.currentSort) {
+      case 'newest':
+        this.reviews.sort((a, b) => {
+          const dateA = new Date(a.created_at || a.updated_at || 0).getTime();
+          const dateB = new Date(b.created_at || b.updated_at || 0).getTime();
+          return dateB - dateA; // Descending - newest first
+        });
+        break;
+        
+      case 'oldest':
+        this.reviews.sort((a, b) => {
+          const dateA = new Date(a.created_at || a.updated_at || 0).getTime();
+          const dateB = new Date(b.created_at || b.updated_at || 0).getTime();
+          return dateA - dateB; // Ascending - oldest first
+        });
+        break;
+        
+      case 'highest':
+        this.reviews.sort((a, b) => b.rating - a.rating); // Descending - highest first
+        break;
+        
+      case 'lowest':
+        this.reviews.sort((a, b) => a.rating - b.rating); // Ascending - lowest first
+        break;
+    }
+  }
+  
+  canEditReply(reply: any): boolean {
+    const currentUser = this.authService.currentUserValue;
+    if (!currentUser) return false;
+    
+    // Admins can edit any reply
+    if (this.isAdmin) return true;
+    
+    // Store owners can only edit their own replies
+    if (this.isOwner) {
+      return currentUser.id === reply.user;
+    }
+    
+    return false;
+  }
+  
+  canDeleteReply(reply: any): boolean {
+    const currentUser = this.authService.currentUserValue;
+    if (!currentUser) return false;
+    
+    // Admins can delete any reply
+    if (this.isAdmin) return true;
+    
+    // Store owners can only delete their own replies
+    if (this.isOwner) {
+      return currentUser.id === reply.user;
+    }
+    
+    return false;
+  }
+  
+  startEditReply(reviewId: string, reply: any): void {
+    this.editingReply = { reviewId, replyId: reply.reply_id };
+    this.replyForm.patchValue({ reply: reply.text });
+  }
+  
+  cancelEditReply(): void {
+    this.editingReply = null;
+    this.replyForm.reset();
+  }
+  
+  submitEditReply(): void {
+    if (!this.editingReply || this.replyForm.invalid) return;
+    
+    const { reviewId, replyId } = this.editingReply;
+    
+    this.reviewService.editReplyToReview(this.storeId, reviewId, replyId, this.replyForm.value.reply)
+      .subscribe(
+        () => {
+          this.editingReply = null;
+          this.loadReviews();
+          this.reviewUpdated.emit({updated: true});
+        },
+        (err: any) => {
+          this.error = 'Failed to update reply. Please try again.';
+          console.error(err);
+        }
+      );
+  }
+  
+  deleteReply(reviewId: string, replyId: string): void {
+    if (confirm('Are you sure you want to delete this reply?')) {
+      this.reviewService.deleteReplyToReview(this.storeId, reviewId, replyId)
+        .subscribe(
+          () => {
+            this.loadReviews();
+            this.reviewUpdated.emit({updated: true});
+          },
+          (err: any) => {
+            this.error = 'Failed to delete reply. Please try again.';
+            console.error(err);
+          }
+        );
+    }
   }
 }

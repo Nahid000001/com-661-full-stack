@@ -42,16 +42,16 @@ export class HomeComponent implements OnInit {
     'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1587&q=80'  // High end clothing display
   ];
 
-  // Avatar placeholders for reviewers
+  // Avatar placeholders for reviewers - updated to use identicon-style avatars
   avatarImages = [
-    'https://i.pravatar.cc/150?img=1',
-    'https://i.pravatar.cc/150?img=2',
-    'https://i.pravatar.cc/150?img=3',
-    'https://i.pravatar.cc/150?img=4',
-    'https://i.pravatar.cc/150?img=5',
-    'https://i.pravatar.cc/150?img=6',
-    'https://i.pravatar.cc/150?img=7',
-    'https://i.pravatar.cc/150?img=8'
+    'https://ui-avatars.com/api/?name=John+Doe&background=0D8ABC&color=fff',
+    'https://ui-avatars.com/api/?name=Sarah+Smith&background=F08080&color=fff',
+    'https://ui-avatars.com/api/?name=Michael+Brown&background=008080&color=fff',
+    'https://ui-avatars.com/api/?name=Emily+Johnson&background=9370DB&color=fff',
+    'https://ui-avatars.com/api/?name=David+Wilson&background=20B2AA&color=fff',
+    'https://ui-avatars.com/api/?name=Jennifer+Lee&background=FF6347&color=fff',
+    'https://ui-avatars.com/api/?name=Robert+Taylor&background=6495ED&color=fff',
+    'https://ui-avatars.com/api/?name=Lisa+Anderson&background=8A2BE2&color=fff'
   ];
 
   constructor(
@@ -147,30 +147,30 @@ export class HomeComponent implements OnInit {
     return [
       {
         review_id: 'review1',
-        user: 'User 1',
-        rating: 4.5,
+        user: 'Emma Johnson',
+        rating: 5,
         comment: 'Great selection of clothing with excellent customer service. Will definitely shop here again!',
         created_at: new Date(2023, 5, 15),
         store_id: 'dummy1',
-        store_name: 'Fashion Elite'
-      },
-      {
-        review_id: 'review2',
-        user: 'User 2',
-        rating: 4.2,
-        comment: 'Loved the variety of styles available. Found exactly what I was looking for at a reasonable price.',
-        created_at: new Date(2023, 5, 15),
-        store_id: 'dummy2',
         store_name: 'Urban Threads'
       },
       {
+        review_id: 'review2',
+        user: 'Michael Smith',
+        rating: 5,
+        comment: 'Loved the variety of styles available. Found exactly what I was looking for at a reasonable price.',
+        created_at: new Date(2023, 5, 10),
+        store_id: 'dummy2',
+        store_name: 'Fashion Forward'
+      },
+      {
         review_id: 'review3',
-        user: 'User 3',
-        rating: 4.8,
-        comment: 'The sustainable practices of this store are impressive. Great quality products that last a long time.',
-        created_at: new Date(2023, 5, 15),
+        user: 'Sophia Martinez',
+        rating: 5,
+        comment: 'One of my favourite stores! The sustainable practices of this store are impressive. Great quality products that last a long time.',
+        created_at: new Date(2023, 5, 5),
         store_id: 'dummy3',
-        store_name: 'Eco Apparel'
+        store_name: 'MhN Fashion Hub'
       }
     ];
   }
@@ -306,14 +306,41 @@ export class HomeComponent implements OnInit {
   
   // Get avatar for review user
   getUserAvatar(review: any): string {
-    if (!review || !review.user) {
-      return this.avatarImages[0];
+    // If the review has a user avatar, return it
+    if (review.userAvatar) {
+      return review.userAvatar;
     }
     
-    // Hash the username to get consistent avatar
-    const hash = this.hashString(review.user);
-    const index = Math.abs(hash) % this.avatarImages.length;
-    return this.avatarImages[index];
+    // If the review has a user name, generate a name-based avatar
+    if (review.user) {
+      // Encode the name properly for URL
+      const encodedName = encodeURIComponent(review.user);
+      // Generate a consistent color based on the user name
+      const color = this.getColorForName(review.user);
+      return `https://ui-avatars.com/api/?name=${encodedName}&background=${color}&color=fff`;
+    }
+    
+    // Fallback to a random avatar from our collection
+    const randomIndex = Math.floor(Math.random() * this.avatarImages.length);
+    return this.avatarImages[randomIndex];
+  }
+
+  // Generate a consistent color based on a name
+  getColorForName(name: string): string {
+    // Create a simple hash of the name
+    const hash = this.hashString(name);
+    
+    // List of good background colors (avoid very light colors)
+    const colors = [
+      '1A237E', '0D47A1', '01579B', '006064', '004D40', 
+      '1B5E20', '33691E', '827717', 'F57F17', 'FF6F00', 
+      'E65100', 'BF360C', '3E2723', '4A148C', '311B92', 
+      '0D47A1', '880E4F', '4A148C', '004D40', '1A237E'
+    ];
+    
+    // Use the hash to select a color
+    const colorIndex = hash % colors.length;
+    return colors[colorIndex];
   }
 
   // Format date to display in a readable format

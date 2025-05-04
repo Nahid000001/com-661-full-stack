@@ -15,6 +15,17 @@
   </div>
   
   <div *ngIf="user && !loading" class="profile-details">
+    <!-- View mode toggle for admins -->
+    <div *ngIf="isAdmin()" class="view-mode-toggle">
+      <div class="toggle-container">
+        <span>View Mode:</span>
+        <select class="view-mode-select" [ngModel]="viewMode" (ngModelChange)="toggleViewMode($event)">
+          <option [value]="viewModes.Admin">Admin View</option>
+          <option [value]="viewModes.User">User View</option>
+        </select>
+      </div>
+    </div>
+    
     <div class="user-info-section">
       <div class="user-avatar">
         {{ getUserInitial() }}
@@ -23,6 +34,17 @@
         <h3>{{ user.username }}</h3>
         <span class="user-role">{{ user.role }}</span>
         <span class="join-date">Joined: {{ user.created_at | date }}</span>
+      </div>
+    </div>
+    
+    <!-- Admin controls section - only visible in admin view -->
+    <div *ngIf="viewMode === viewModes.Admin && isAdmin()" class="admin-controls">
+      <h4>Admin Controls</h4>
+      <div class="admin-links">
+        <button routerLink="/admin/users" class="admin-link">Manage Users</button>
+        <button routerLink="/admin/reviews" class="admin-link">Review Responses</button>
+        <button routerLink="/admin/stores" class="admin-link">Manage Stores</button>
+        <button routerLink="/admin" class="admin-link">Admin Dashboard</button>
       </div>
     </div>
     

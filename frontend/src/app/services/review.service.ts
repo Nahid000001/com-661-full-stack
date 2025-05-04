@@ -16,10 +16,15 @@ export class ReviewService {
     private errorService: ErrorService
   ) { }
 
-  getStoreReviews(storeId: string, page: number = 1, limit: number = 5): Observable<{ reviews: Review[], total: number }> {
-    return this.http.get<{ reviews: Review[], total: number }>(
+  getStoreReviews(storeId: string, page: number = 1, limit: number = 5): Observable<{ reviews: Review[], total: number, totalPages?: number, pageSize?: number }> {
+    return this.http.get<{ reviews: Review[], total: number, totalPages?: number, pageSize?: number }>(
       `${environment.apiUrl}/stores/${storeId}/reviews?page=${page}&limit=${limit}`
     ).pipe(
+      map(response => ({
+        ...response,
+        pageSize: limit,
+        totalPages: response.totalPages || Math.ceil(response.total / limit)
+      })),
       catchError((error: HttpErrorResponse) => {
         console.error('Error fetching reviews:', error);
         this.errorService.setError('Failed to load reviews');
@@ -75,8 +80,8 @@ export class ReviewService {
       );
   }
 
-  replyToReview(storeId: string, reviewId: string, reply: string): Observable<Review> {
-    return this.http.post<Review>(`${environment.apiUrl}/stores/${storeId}/reviews/${reviewId}/reply`, { reply })
+  replyToReview(storeId: string, reviewId: string, reply: string, isAdmin: boolean = false): Observable<Review> {
+    return this.http.post<Review>(`${environment.apiUrl}/stores/${storeId}/reviews/${reviewId}/reply`, { reply, isAdmin })
       .pipe(
         catchError((error: HttpErrorResponse) => {
           console.error('Error replying to review:', error);
@@ -84,5 +89,97 @@ export class ReviewService {
           return throwError(() => error);
         })
       );
+  }
+
+  editReplyToReview(storeId: string, reviewId: string, replyId: string, reply: string): Observable<any> {
+    return this.http.patch<any>(`${environment.apiUrl}/stores/${storeId}/reviews/${reviewId}/reply/${replyId}`, { reply })
+      .pipe(
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error editing reply:', error);
+          this.errorService.setError(error.error?.message || 'Failed to edit reply');
+          return throwError(() => error);
+        })
+      );
+  }
+
+  deleteReplyToReview(storeId: string, reviewId: string, replyId: string): Observable<any> {
+    return this.http.delete<any>(`${environment.apiUrl}/stores/${storeId}/reviews/${reviewId}/reply/${replyId}`)
+      .pipe(
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error deleting reply:', error);
+          this.errorService.setError(error.error?.message || 'Failed to delete reply');
+          return throwError(() => error);
+        })
+      );
+  }
+
+  getUserReviewsWithReplies(): Observable<{ reviews: Review[], total: number }> {
+    return this.http.get<{ reviews: Review[], total: number }>(`${environment.apiUrl}/users/reviews/with-replies`)
+      .pipe(
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error getting user reviews with replies:', error);
+          this.errorService.setError(error.error?.message || 'Failed to get reviews with replies');
+          return throwError(() => error);
+        })
+      );
+  }
+
+  getReviewById(reviewId: string): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/reviews/${reviewId}`)
+      .pipe(
+        catchError(this.handleError)
+      );
+  }
+  
+  updateReview(reviewId: string, reviewData: any): Observable<any> {
+    return this.http.put(`${environment.apiUrl}/reviews/${reviewId}`, reviewData)
+      .pipe(
+        catchError(this.handleError)
+      );
+  }
+  
+  respondToReview(reviewId: string, response: string): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/reviews/${reviewId}/response`, { response })
+      .pipe(
+        catchError(this.handleError)
+      );
+  }
+  
+  getUserReviews(): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/reviews/user`)
+      .pipe(
+        catchError(this.handleError)
+      );
+  }
+  
+  getReviewResponses(): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/reviews/responses`)
+      .pipe(
+        catchError(this.handleError)
+      );
+  }
+  
+  // Admin methods
+  getAllReviews(): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/reviews/admin/all`)
+      .pipe(
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error getting all reviews:', error);
+          this.errorService.setError(error.error?.message || 'Failed to get all reviews');
+          return throwError(() => error);
+        })
+      );
+  }
+  
+  private handleError(error: any) {
+    let errorMessage = '';
+    if (error.error instanceof ErrorEvent) {
+      // Client-side error
+      errorMessage = `Error: ${error.error.message}`;
+    } else {
+      // Server-side error
+      errorMessage = `Error Code: ${error.status}\nMessage: ${error.message}`;
+    }
+    return throwError(() => new Error(errorMessage));
   }
 }

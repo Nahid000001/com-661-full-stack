@@ -1,14 +1,16 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 import { UserService } from '../../services/user.service';
 import { AuthService } from '../../services/auth.service';
 import { User } from '../../models/user.model';
+import { RouterModule } from '@angular/router';
+import { ViewModeService, ViewMode } from '../../services/view-mode.service';
 
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule],
   templateUrl: './profile.component.html',
   styleUrls: ['./profile.component.scss']
 })
@@ -18,10 +20,15 @@ export class ProfileComponent implements OnInit {
   loading = false;
   error = '';
   updateSuccess = false;
+  
+  // View mode properties
+  viewMode = ViewMode.Admin; // Default to admin view for admins
+  viewModes = ViewMode; // Expose enum to template
 
   constructor(
     private userService: UserService,
     private authService: AuthService,
+    private viewModeService: ViewModeService,
     private fb: FormBuilder
   ) {
     this.profileForm = this.fb.group({
@@ -33,6 +40,11 @@ export class ProfileComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadUserProfile();
+    
+    // Subscribe to view mode changes
+    this.viewModeService.getViewMode().subscribe(mode => {
+      this.viewMode = mode;
+    });
   }
 
   getUserInitial(): string {
@@ -82,5 +94,13 @@ export class ProfileComponent implements OnInit {
         this.loading = false;
       }
     });
+  }
+
+  toggleViewMode(mode: ViewMode): void {
+    this.viewModeService.setViewMode(mode);
+  }
+
+  isAdmin(): boolean {
+    return this.user?.role === 'admin';
   }
 } 

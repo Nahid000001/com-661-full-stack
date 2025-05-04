@@ -39,6 +39,7 @@ export class StoreDetailComponent implements OnInit {
   // Modal properties
   showEditModal: boolean = false;
   showDeleteModal: boolean = false;
+  showEditForm: boolean = false;
   editForm: FormGroup;
   updating: boolean = false;
   deleting: boolean = false;
@@ -52,6 +53,16 @@ export class StoreDetailComponent implements OnInit {
     'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80',
     'https://images.unsplash.com/photo-1542060748-10c28b62716f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80',
   ];
+  
+  // Images for specific stores
+  storeImagesByName: {[key: string]: string[]} = {
+    'Urban Threads': [
+      'https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
+      'https://images.unsplash.com/photo-1567401893414-91b2a97e5b52?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
+      'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1587&q=80',
+      'https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
+    ]
+  };
   
   constructor(
     private route: ActivatedRoute,
@@ -126,10 +137,9 @@ export class StoreDetailComponent implements OnInit {
       
       if (user && user.token) {
         const payload = this.authService.decodeToken(user.token);
-        const role = payload?.role || 'customer';
         const userId = payload?.sub || payload?.userId; // Make sure we get the correct user ID
         
-        this.isAdmin = role === 'admin';
+        this.isAdmin = this.authService.hasRole('admin');
         
         // Only set isOwner to true if:
         // 1. The user is the specific owner of this store (userId matches store.owner), OR
@@ -192,11 +202,35 @@ export class StoreDetailComponent implements OnInit {
 
   // Image gallery methods
   getMainImage() {
-    return this.storeImages[this.currentImageIndex];
+    // Check if we have specific images for this store
+    if (this.store && this.store.company_name && this.storeImagesByName[this.store.company_name]) {
+      const storeSpecificImages = this.storeImagesByName[this.store.company_name];
+      return storeSpecificImages[this.currentImageIndex % storeSpecificImages.length];
+    }
+    return this.storeImages[this.currentImageIndex % this.storeImages.length];
   }
 
   setMainImage(index: number) {
     this.currentImageIndex = index;
+  }
+
+  // Method to get all images for current store (generic or specific)
+  getStoreGalleryImages() {
+    if (this.store && this.store.company_name && this.storeImagesByName[this.store.company_name]) {
+      return this.storeImagesByName[this.store.company_name];
+    }
+    return this.storeImages;
+  }
+
+  // Image error handling
+  handleImageError(event: any) {
+    // Set a fallback image if the main image fails to load
+    event.target.src = 'https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80';
+  }
+
+  handleThumbnailError(event: any, index: number) {
+    // Set a fallback image for thumbnails
+    event.target.src = 'https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80';
   }
 
   // Mock email generation for the store
@@ -218,6 +252,26 @@ export class StoreDetailComponent implements OnInit {
       title: this.store.title || '',
       description: this.store.description || ''
     });
+  }
+
+  // Toggle method for inline edit form
+  toggleEditForm() {
+    this.showEditForm = !this.showEditForm;
+    this.formError = '';
+    
+    if (this.showEditForm) {
+      // Populate form with store data
+      this.editForm.patchValue({
+        company_name: this.store.company_name,
+        location: this.store.location,
+        work_type: this.store.work_type || 'retail',
+        title: this.store.title || '',
+        description: this.store.description || ''
+      });
+    } else {
+      // Reset form when closing
+      this.editForm.reset();
+    }
   }
 
   cancelEdit() {
@@ -249,7 +303,9 @@ export class StoreDetailComponent implements OnInit {
             ...this.store,
             ...updatedStore
           };
+          // Close both forms
           this.showEditModal = false;
+          this.showEditForm = false;
           this.updating = false;
         },
         error: (error) => {

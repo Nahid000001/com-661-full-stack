@@ -7,6 +7,11 @@ import { environment } from '../../environments/environment';
 import { User } from '../models/user.model';
 import { AuthService } from './auth.service';
 
+interface UserResponse {
+  users: any[];
+  [key: string]: any;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -60,5 +65,42 @@ export class UserService {
     
     console.error('User service error:', error);
     return throwError(() => ({ status: error.status, message: errorMessage }));
+  }
+
+  // Admin operations
+  getAllUsers(): Observable<UserResponse> {
+    return this.http.get<UserResponse>(`${environment.apiUrl}/users/admin/all`)
+      .pipe(
+        timeout(10000),
+        retry(2),
+        catchError(this.handleError)
+      );
+  }
+
+  getUser(userId: string): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/users/${userId}`)
+      .pipe(
+        timeout(10000),
+        retry(2),
+        catchError(this.handleError)
+      );
+  }
+
+  updateUser(userId: string, userData: any): Observable<any> {
+    return this.http.put(`${environment.apiUrl}/users/${userId}`, userData)
+      .pipe(
+        timeout(10000),
+        retry(2),
+        catchError(this.handleError)
+      );
+  }
+
+  deleteUser(userId: string): Observable<any> {
+    return this.http.delete(`${environment.apiUrl}/users/${userId}`)
+      .pipe(
+        timeout(10000),
+        retry(2),
+        catchError(this.handleError)
+      );
   }
 } 

@@ -9,6 +9,7 @@ from app.utils.error_handler import (
     ForbiddenError, 
     ValidationError
 )
+from datetime import datetime
 
 reviews_bp = Blueprint('reviews', __name__)
 
@@ -189,13 +190,123 @@ def reply_to_store_review(store_id, review_id):
         if claims.get("role") != "admin" and store_data.get("owner", "") != user:
             raise ForbiddenError("Unauthorized: Only the store owner or admin can reply")
             
-        success, message = review.add_reply_to_review(store_id, review_id, user, reply_text)
+        # Set is_admin to true if the user has the admin role
+        is_admin = claims.get("role") == "admin"
+            
+        success, message = review.add_reply_to_review(store_id, review_id, user, reply_text, is_admin)
         if not success:
             raise ResourceNotFoundError(message)
+        
+        # Get the updated store review
+        updated_store = store.get_store_by_id(store_id)
+        if not updated_store:
+            raise ResourceNotFoundError("Store not found")
+            
+        # Find the reviewer to notify them
+        review_obj = None
+        for r in updated_store.get("reviews", []):
+            if r.get("review_id") == review_id:
+                review_obj = r
+                break
+                
+        # If we found the review and it has a user, create a notification
+        if review_obj and review_obj.get("user"):
+            # Check if we have a notification system
+            if hasattr(mongo.db, 'notifications'):
+                notification = {
+                    "user_id": review_obj.get("user"),
+                    "type": "review_reply",
+                    "content": {
+                        "store_id": store_id,
+                        "store_name": updated_store.get("company_name", "Store"),
+                        "review_id": review_id,
+                        "reply_from": "Admin" if is_admin else "Store Owner"
+                    },
+                    "is_read": False,
+                    "created_at": datetime.utcnow()
+                }
+                mongo.db.notifications.insert_one(notification)
             
         return jsonify({"message": message}), 201
         
     except (ValidationError, ResourceNotFoundError, ForbiddenError) as e:
         raise e
+    except Exception as e:
+        raise ApiError(str(e))
+
+@reviews_bp.route('/stores/<store_id>/reviews/<review_id>/reply/<reply_id>', methods=['PATCH'])
+@jwt_required()
+def edit_reply_to_review(store_id, review_id, reply_id):
+    """Edit a reply to a review."""
+    try:
+        if not is_valid_object_id(store_id):
+            raise ValidationError("Invalid store ID format")
+            
+        data = request.get_json()
+        reply_text = data.get("reply", "").strip()
+        user = get_jwt_identity()
+        claims = get_jwt()
+        
+        if not reply_text:
+            raise ValidationError("Reply text is required")
+            
+        # Check user permissions
+        is_admin = claims.get("role") == "admin"
+            
+        success, message = review.edit_reply_to_review(store_id, review_id, reply_id, user, reply_text, is_admin)
+        if not success:
+            if "Unauthorized" in message:
+                raise ForbiddenError(message)
+            else:
+                raise ResourceNotFoundError(message)
+            
+        return jsonify({"message": message}), 200
+        
+    except (ValidationError, ResourceNotFoundError, ForbiddenError) as e:
+        raise e
+    except Exception as e:
+        raise ApiError(str(e))
+
+@reviews_bp.route('/stores/<store_id>/reviews/<review_id>/reply/<reply_id>', methods=['DELETE'])
+@jwt_required()
+def delete_reply_to_review(store_id, review_id, reply_id):
+    """Delete a reply to a review."""
+    try:
+        if not is_valid_object_id(store_id):
+            raise ValidationError("Invalid store ID format")
+            
+        user = get_jwt_identity()
+        claims = get_jwt()
+        
+        # Check user permissions
+        is_admin = claims.get("role") == "admin"
+            
+        success, message = review.delete_reply_to_review(store_id, review_id, reply_id, user, is_admin)
+        if not success:
+            if "Unauthorized" in message:
+                raise ForbiddenError(message)
+            else:
+                raise ResourceNotFoundError(message)
+            
+        return jsonify({"message": message}), 200
+        
+    except (ValidationError, ResourceNotFoundError, ForbiddenError) as e:
+        raise e
+    except Exception as e:
+        raise ApiError(str(e))
+
+@reviews_bp.route('/users/reviews/with-replies', methods=['GET'])
+@jwt_required()
+def get_user_reviews_with_replies():
+    """Get all reviews by the current user that have received replies."""
+    try:
+        user_id = get_jwt_identity()
+        reviews_with_replies = review.get_user_reviews_with_replies(user_id)
+        
+        return jsonify({
+            "reviews": reviews_with_replies,
+            "total": len(reviews_with_replies)
+        }), 200
+        
     except Exception as e:
         raise ApiError(str(e))

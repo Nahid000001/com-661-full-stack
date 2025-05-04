@@ -1,0 +1,76 @@
+<div class="admin-reviews">
+  <header class="admin-header">
+    <h1>Manage Reviews</h1>
+    <a routerLink="/admin" class="back-link">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      Back to Dashboard
+    </a>
+  </header>
+  
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading reviews...</p>
+  </div>
+  
+  <!-- Error State -->
+  <div *ngIf="error" class="error-container">
+    <div class="alert alert-danger">
+      {{ error }}
+    </div>
+    <button (click)="loadReviews()" class="btn btn-outline">Retry</button>
+  </div>
+  
+  <!-- Reviews Table -->
+  <div *ngIf="!loading && !error" class="reviews-table-container">
+    <table class="reviews-table">
+      <thead>
+        <tr>
+          <th>Store</th>
+          <th>User</th>
+          <th>Rating</th>
+          <th>Review</th>
+          <th>Date</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let review of reviews">
+          <td>
+            <a [routerLink]="['/stores', review.store_id]">{{ review.store_name || 'Unknown Store' }}</a>
+          </td>
+          <td>{{ review.username || 'Anonymous' }}</td>
+          <td>
+            <div class="star-rating">
+              <span *ngFor="let i of [1, 2, 3, 4, 5]" [class.filled]="i <= review.rating">★</span>
+            </div>
+          </td>
+          <td class="review-text">
+            <div class="review-content">{{ review.comment }}</div>
+            <div *ngIf="review.response" class="review-response">
+              <strong>Response:</strong> {{ review.response }}
+            </div>
+          </td>
+          <td>{{ review.created_at | date:'medium' }}</td>
+          <td class="actions">
+            <button (click)="deleteReview(review._id, review.store_id)" class="btn btn-sm btn-danger" title="Delete">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <line x1="10" y1="11" x2="10" y2="17"></line>
+                <line x1="14" y1="11" x2="14" y2="17"></line>
+              </svg>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <div *ngIf="reviews.length === 0" class="no-data">
+      <p>No reviews found</p>
+    </div>
+  </div>
+</div> 

@@ -195,9 +195,11 @@
       <div class="review-slider">
         <div class="review-card" *ngFor="let review of latestReviews">
           <div class="review-header">
-            <div class="reviewer-avatar" [style.background-image]="'url(' + getUserAvatar(review) + ')'"></div>
+            <div class="reviewer-avatar">
+              <img [src]="getUserAvatar(review)" alt="Reviewer" class="reviewer-img">
+            </div>
             <div class="reviewer-info">
-              <h4 class="reviewer-name">{{ review.user }}</h4>
+              <h4 class="reviewer-name">{{ review.user || 'Anonymous User' }}</h4>
               <div class="review-rating">
                 <i class="star-icon filled" *ngFor="let star of getStarsArray(review.rating)"></i>
               </div>
@@ -218,7 +220,7 @@
         </div>
       </div>
       
-      <div class="text-center mt-4">
+      <div class="text-center mt-4 read-more-container">
         <a routerLink="/stores" class="btn btn-outline-primary">READ MORE REVIEWS</a>
       </div>
     </div>

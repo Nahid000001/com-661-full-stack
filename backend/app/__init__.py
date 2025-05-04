@@ -44,7 +44,22 @@ def create_app(config_name='default'):
     # Configure Redis connection
     global redis_client
     redis_url = app.config.get('REDIS_URL', 'redis://localhost:6379/0')
-    redis_client = redis.from_url(redis_url)
+    try:
+        redis_client = redis.from_url(redis_url)
+        # Test the connection
+        redis_client.ping()
+        print("Redis connection successful")
+    except redis.exceptions.ConnectionError:
+        print("Warning: Redis server is not available. Some features like token blocklisting will be disabled.")
+        # Create a mock Redis client that won't cause errors when methods are called
+        class MockRedis:
+            def get(self, key):
+                return None
+            def setex(self, *args, **kwargs):
+                pass
+            def delete(self, *args, **kwargs):
+                pass
+        redis_client = MockRedis()
     
     # Initialize extensions
     mongo.init_app(app)
@@ -64,8 +79,13 @@ def create_app(config_name='default'):
     @jwt.token_in_blocklist_loader
     def check_if_token_in_blocklist(jwt_header, jwt_payload):
         jti = jwt_payload["jti"]
-        token_in_redis = redis_client.get(jti)
-        return token_in_redis is not None
+        try:
+            token_in_redis = redis_client.get(jti)
+            return token_in_redis is not None
+        except redis.exceptions.ConnectionError:
+            # Redis is not available, log warning and continue
+            print("Warning: Redis connection failed. Token validation is disabled.")
+            return False
     
     @jwt.revoked_token_loader
     def revoked_token_callback(jwt_header, jwt_payload):

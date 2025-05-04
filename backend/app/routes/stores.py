@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from app.models import store
 from app.utils import is_valid_object_id
-from app.middlewares.auth import get_user_details
+from app.middlewares.auth import get_user_details, owner_or_admin_required, verify_store_ownership
 from app.utils.error_handler import (
     ApiError, 
     ResourceNotFoundError, 
@@ -15,6 +15,7 @@ stores_bp = Blueprint('stores', __name__)
 
 @stores_bp.route('/', methods=['POST'])
 @jwt_required()
+@owner_or_admin_required
 def add_store():
     """
     Add a new store
@@ -77,13 +78,6 @@ def add_store():
     """
     try:
         user = get_jwt_identity()
-        claims = get_jwt()
-        role = claims.get("role")
-
-        # only "admin" or "store_owner" can add stores
-        if role not in ["admin", "store_owner"]:
-            raise ForbiddenError("Unauthorized. Only admin or store owner can add stores")
-
         data = request.get_json()
 
         required_fields = ["company_name", "title", "description", "location", "work_type"]
@@ -262,7 +256,7 @@ def get_store_by_id(store_id):
 @jwt_required()
 def update_store_by_id(store_id):
     """
-    Update a store
+    Update store by ID
     ---
     tags:
       - Stores
@@ -307,29 +301,48 @@ def update_store_by_id(store_id):
     try:
         if not is_valid_object_id(store_id):
             raise ValidationError("Invalid store ID format")
-        data = request.get_json()
-        user = get_jwt_identity()
+            
+        user_id = get_jwt_identity()
         claims = get_jwt()
-        is_admin = claims.get("role") == "admin"
-        allowed_fields = ["company_name", "title", "description", "location", "work_type"]
-        update_data = {field: data[field] for field in allowed_fields if field in data and data[field]}
-        if not update_data:
-            raise ValidationError("No valid fields provided for update")
-        success, message = store.update_store(store_id, update_data, user, is_admin=is_admin)
-        if not success:
-            raise ForbiddenError(message)
-        return jsonify({"message": "Store updated successfully"}), 200
-    except (ValidationError, ForbiddenError) as e:
+        role = claims.get("role")
+        
+        # Verify ownership or admin status
+        if not verify_store_ownership(store_id, user_id, role):
+            raise ForbiddenError("You don't have permission to update this store")
+            
+        data = request.get_json()
+        if not data:
+            raise ValidationError("No data provided for update")
+            
+        # Prevent updating certain fields based on role
+        if role != "admin":
+            # Store owners can't update certain admin-only fields
+            restricted_fields = ["average_rating", "review_count", "admin_notes"]
+            for field in restricted_fields:
+                if field in data:
+                    del data[field]
+                    
+        result = store.update_store_by_id(store_id, data)
+        
+        if result["success"]:
+            return jsonify({
+                "message": "Store updated successfully",
+                "store_id": store_id
+            }), 200
+        else:
+            raise ResourceNotFoundError("Store not found or could not be updated")
+            
+    except (ValidationError, ResourceNotFoundError, ForbiddenError) as e:
         raise e
     except Exception as e:
-        raise ApiError(str(e), 500)
+        raise ApiError(f"An error occurred: {str(e)}", 500)
 
 
 @stores_bp.route('/<store_id>', methods=['DELETE'])
 @jwt_required()
 def delete_store_by_id(store_id):
     """
-    Delete a store
+    Delete store by ID
     ---
     tags:
       - Stores
@@ -357,17 +370,30 @@ def delete_store_by_id(store_id):
     try:
         if not is_valid_object_id(store_id):
             raise ValidationError("Invalid store ID format")
-        user = get_jwt_identity()
+            
+        user_id = get_jwt_identity()
         claims = get_jwt()
-        is_admin = claims.get("role") == "admin"
-        success, message = store.delete_store(store_id, user, is_admin=is_admin)
-        if not success:
-            raise ForbiddenError(message)
-        return jsonify({"message": message}), 200
-    except (ValidationError, ForbiddenError) as e:
+        role = claims.get("role")
+        
+        # Only admin can delete a store entirely, owners can only remove their branches
+        if role != "admin":
+            raise ForbiddenError("Only administrators can delete an entire store")
+            
+        result = store.delete_store_by_id(store_id)
+        
+        if result["success"]:
+            return jsonify({
+                "message": "Store deleted successfully",
+                "store_id": store_id,
+                "deleted_branches": result.get("deleted_branches", 0)
+            }), 200
+        else:
+            raise ResourceNotFoundError("Store not found or could not be deleted")
+            
+    except (ValidationError, ResourceNotFoundError, ForbiddenError) as e:
         raise e
     except Exception as e:
-        raise ApiError(str(e))
+        raise ApiError(f"An error occurred: {str(e)}", 500)
 
 
 @stores_bp.route('/<store_id>/branches/<branch_id>', methods=['DELETE'])
@@ -406,27 +432,29 @@ def delete_branch_from_store(store_id, branch_id):
         description: Store or branch not found
     """
     try:
-        if not is_valid_object_id(store_id):
-            raise ValidationError("Invalid store ID format")
+        if not is_valid_object_id(store_id) or not is_valid_object_id(branch_id):
+            raise ValidationError("Invalid ID format")
             
-        user = get_jwt_identity()
+        user_id = get_jwt_identity()
         claims = get_jwt()
+        role = claims.get("role")
         
-        # If user is admin, they can delete any branch
-        if claims.get("role") == "admin":
-            success, message, store_deleted = True, "Branch deleted successfully by admin", False
+        # Verify ownership or admin status
+        if not verify_store_ownership(store_id, user_id, role):
+            raise ForbiddenError("You don't have permission to delete branches from this store")
+            
+        result = store.delete_branch_from_store(store_id, branch_id)
+        
+        if result["success"]:
+            return jsonify({
+                "message": "Branch deleted successfully",
+                "store_id": store_id,
+                "branch_id": branch_id
+            }), 200
         else:
-            success, message, store_deleted = store.delete_branch(store_id, branch_id, user)
-        
-        if not success:
-            raise ForbiddenError(message)
-        
-        if store_deleted:
-            return jsonify({"message": "Branch deleted, and store removed since it had no branches left"}), 200
-        else:
-            return jsonify({"message": message}), 200
-        
-    except (ValidationError, ForbiddenError) as e:
+            raise ResourceNotFoundError("Store or branch not found, or could not be deleted")
+            
+    except (ValidationError, ResourceNotFoundError, ForbiddenError) as e:
         raise e
     except Exception as e:
-        raise ApiError(str(e))
+        raise ApiError(f"An error occurred: {str(e)}", 500)

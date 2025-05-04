@@ -7,7 +7,7 @@ try {
     # This requires the MongoDB command line tools to be installed
     # If you don't have them, you can skip this check
     $mongoStatus = mongod --version 2>$null
-    if ($LASTEXITCODE -eq 0) {
+    if ($mongoStatus) {
         Write-Host "MongoDB is available" -ForegroundColor Green
     } else {
         Write-Host "MongoDB may not be running! Please start MongoDB first." -ForegroundColor Yellow

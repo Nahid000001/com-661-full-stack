@@ -1,7 +1,7 @@
 // src/app/services/store.service.ts
 import { Injectable } from '@angular/core';
 import { Observable, throwError, of } from 'rxjs';
-import { catchError, timeout, retry, delay, concatMap, retryWhen, tap } from 'rxjs/operators';
+import { catchError, timeout, retry, delay, concatMap, retryWhen, tap, map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { ErrorService } from './error.service';
@@ -256,6 +256,19 @@ export class StoreService {
       .pipe(
         timeout(10000),
         retry(1),
+        map(response => {
+          // Transform to ensure all reviews have userName
+          if (response && response.reviews && Array.isArray(response.reviews)) {
+            return response.reviews.map((review: any) => {
+              // If userName is missing, use user or userId or set to Anonymous
+              if (!review.userName) {
+                review.userName = review.userId || review.user || 'Anonymous';
+              }
+              return review;
+            });
+          }
+          return [];
+        }),
         catchError((error: HttpErrorResponse) => {
           console.error(`Error fetching reviews for store ${storeId}:`, error);
           // Don't show error message for reviews as it's not critical

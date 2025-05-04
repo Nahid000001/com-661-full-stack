@@ -3,21 +3,16 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models.order import Order
 from app import mongo
 from bson.objectid import ObjectId
+from app.middlewares.auth import admin_required
 
 # Create blueprint
 orders_bp = Blueprint('orders', __name__)
 
 @orders_bp.route('', methods=['GET'])
 @jwt_required()
+@admin_required
 def get_all_orders():
     """Admin: Get all orders"""
-    current_user_id = get_jwt_identity()
-    
-    # Check if user is admin
-    user = mongo.db.users.find_one({"_id": ObjectId(current_user_id)})
-    if not user or user.get("role") != "admin":
-        return jsonify({"error": "Unauthorized. Admin access required"}), 403
-    
     # Get all orders
     orders = Order.get_all_orders()
     
@@ -77,15 +72,10 @@ def get_order(order_id):
 
 @orders_bp.route('/<order_id>', methods=['PUT'])
 @jwt_required()
+@admin_required
 def update_order(order_id):
     """Admin: Update order status"""
-    current_user_id = get_jwt_identity()
     data = request.get_json()
-    
-    # Check if user is admin
-    user = mongo.db.users.find_one({"_id": ObjectId(current_user_id)})
-    if not user or user.get("role") != "admin":
-        return jsonify({"error": "Unauthorized. Admin access required"}), 403
     
     # Validate input
     if not data or 'status' not in data:
