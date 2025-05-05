@@ -193,18 +193,19 @@ def add_reply_to_review(store_id, review_id, user, reply_text, is_admin=False):
             return False, "Review not found"
         
         # Create new reply
+        reply_id = str(ObjectId())
         reply = {
-            "reply_id": str(ObjectId()),  # Add a unique ID for the reply
+            "reply_id": reply_id,  # Add a unique ID for the reply
             "user": user,
             "text": reply_text,
             "created_at": datetime.utcnow(),
-            "isAdmin": is_admin
+            "isAdmin": is_admin,  # Use camelCase to match frontend expectations
         }
         
         # Add reply to review
         result = mongo.db.stores.update_one(
-            {"_id": ObjectId(store_id)},
-            {"$push": {f"reviews.{review_index}.replies": reply}}
+            {"_id": ObjectId(store_id), "reviews.review_id": review_id},
+            {"$push": {"reviews.$.replies": reply}}
         )
         
         if result.modified_count == 0:

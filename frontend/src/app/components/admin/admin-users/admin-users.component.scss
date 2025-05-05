@@ -91,10 +91,87 @@
         color: #fff;
       }
     }
+    
+    // API Status Panel
+    .api-status-panel {
+      margin-top: 2rem;
+      padding: 1.5rem;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 600px;
+      
+      h3 {
+        font-size: 1.2rem;
+        margin-top: 0;
+        margin-bottom: 1rem;
+        color: #333;
+        text-align: center;
+      }
+      
+      .status-info {
+        margin-bottom: 1.5rem;
+        
+        p {
+          display: flex;
+          align-items: center;
+          margin: 0.5rem 0;
+          padding: 0.5rem;
+          background-color: #fff;
+          border-radius: 4px;
+          
+          &::before {
+            content: '';
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+          }
+          
+          &.status-connected::before {
+            background-color: #4caf50;
+          }
+          
+          &.status-disconnected::before {
+            background-color: #f44336;
+          }
+        }
+        
+        p:nth-child(1)::before {
+          background-color: #ccc;
+        }
+        
+        p:nth-child(2)::before {
+          background-color: #ccc;
+        }
+      }
+      
+      .btn-sm {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        padding: 0.3rem 0.8rem;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        display: block;
+        margin: 0 auto;
+        
+        &:hover {
+          background-color: #5a6268;
+        }
+      }
+    }
   }
   
   .users-table-container {
-    overflow-x: auto;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
     
     .users-table {
       width: 100%;
@@ -103,152 +180,128 @@
       th, td {
         padding: 1rem;
         text-align: left;
-        border-bottom: 1px solid #dee2e6;
+        border-bottom: 1px solid #eee;
       }
       
       th {
-        background-color: #f8f9fa;
+        background-color: #f9f9f9;
+        color: #333;
         font-weight: 600;
-        color: #495057;
       }
       
-      tr:hover {
-        background-color: #f8f9fa;
+      tr:last-child td {
+        border-bottom: none;
+      }
+      
+      tr:hover td {
+        background-color: #f5f5f5;
       }
       
       .role-badge {
         display: inline-block;
         padding: 0.25rem 0.5rem;
-        font-size: 0.75rem;
-        font-weight: 700;
-        line-height: 1;
-        text-align: center;
-        white-space: nowrap;
-        vertical-align: baseline;
-        border-radius: 0.25rem;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        background-color: #e9ecef;
         
         &.role-admin {
-          background-color: #dc3545;
-          color: #fff;
+          background-color: #e3f2fd;
+          color: #0d47a1;
         }
         
         &.role-store_owner {
-          background-color: #fd7e14;
-          color: #fff;
+          background-color: #e8f5e9;
+          color: #1b5e20;
         }
         
         &.role-customer {
-          background-color: #28a745;
-          color: #fff;
+          background-color: #fff3e0;
+          color: #e65100;
         }
       }
       
       .actions {
         display: flex;
         gap: 0.5rem;
+        align-items: center;
+        
+        .btn-sm {
+          padding: 0.25rem 0.5rem;
+          border-radius: 4px;
+          font-size: 0.85rem;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        
+        .btn-danger {
+          background-color: #dc3545;
+          color: white;
+          border: none;
+          
+          &:hover {
+            background-color: #c82333;
+          }
+        }
+        
+        .btn-outline {
+          background-color: transparent;
+          border: 1px solid #6c757d;
+          color: #6c757d;
+          
+          &:hover {
+            background-color: #6c757d;
+            color: white;
+          }
+        }
         
         .dropdown {
           position: relative;
           display: inline-block;
           
           .dropdown-toggle {
-            display: inline-flex;
+            display: flex;
             align-items: center;
-            justify-content: center;
-            padding: 0.375rem 0.75rem;
-            font-size: 0.875rem;
-            line-height: 1.5;
-            border-radius: 0.25rem;
-            border: 1px solid #6c757d;
-            color: #6c757d;
-            background-color: transparent;
-            cursor: pointer;
+            gap: 0.3rem;
             
-            &:hover {
-              background-color: #f8f9fa;
-            }
-            
-            &:focus + .dropdown-menu {
-              display: block;
+            &::after {
+              content: '▼';
+              font-size: 0.75rem;
             }
           }
           
           .dropdown-menu {
-            display: none;
             position: absolute;
             top: 100%;
             left: 0;
-            z-index: 1000;
-            min-width: 10rem;
+            z-index: 10;
+            display: none;
+            min-width: 150px;
             padding: 0.5rem 0;
             margin: 0.125rem 0 0;
-            font-size: 1rem;
-            color: #212529;
-            text-align: left;
             background-color: #fff;
-            background-clip: padding-box;
             border: 1px solid rgba(0, 0, 0, 0.15);
-            border-radius: 0.25rem;
-            
-            &:hover {
-              display: block;
-            }
-            
-            .dropdown-item {
-              display: block;
-              width: 100%;
-              padding: 0.25rem 1.5rem;
-              clear: both;
-              font-weight: 400;
-              text-align: inherit;
-              white-space: nowrap;
-              background-color: transparent;
-              border: 0;
-              cursor: pointer;
-              
-              &:hover {
-                color: #16181b;
-                text-decoration: none;
-                background-color: #f8f9fa;
-              }
-            }
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
           }
           
-          &:hover {
-            .dropdown-menu {
-              display: block;
-            }
+          &:hover .dropdown-menu {
+            display: block;
           }
-        }
-        
-        .btn-sm {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          padding: 0.25rem;
-          border-radius: 4px;
-          cursor: pointer;
-          transition: all 0.2s;
           
-          &.btn-outline {
+          .dropdown-item {
+            display: block;
+            width: 100%;
+            padding: 0.5rem 1rem;
+            clear: both;
+            text-align: left;
             background-color: transparent;
-            border: 1px solid #6c757d;
-            color: #6c757d;
+            border: 0;
+            cursor: pointer;
             
             &:hover {
-              background-color: #6c757d;
-              color: #fff;
-            }
-          }
-          
-          &.btn-danger {
-            background-color: transparent;
-            border: 1px solid #dc3545;
-            color: #dc3545;
-            
-            &:hover {
-              background-color: #dc3545;
-              color: #fff;
+              background-color: #f8f9fa;
+              color: #16181b;
             }
           }
         }

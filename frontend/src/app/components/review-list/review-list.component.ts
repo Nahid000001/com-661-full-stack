@@ -226,7 +226,6 @@ export class ReviewListComponent implements OnInit {
   canReplyToReview(): boolean {
     // Admin or store owner can reply to reviews, this is simplified since isAdmin and isOwner
     // are already passed from the parent component
-    console.log('Can reply to review check - isAdmin:', this.isAdmin, 'isOwner:', this.isOwner);
     return this.isAdmin || this.isOwner;
   }
   
@@ -319,32 +318,42 @@ export class ReviewListComponent implements OnInit {
     const replyText = this.replyForm.get('reply')?.value;
     if (!replyText) return;
     
-    console.log(`Submitting reply as ${this.isAdmin ? 'admin' : 'owner'}`);
+    // Clear previous errors
+    this.error = '';
     
     // Get user ID and ensure it's not null
     const userId = this.authService.getUserId() || 'unknown';
     
     this.reviewService.replyToReview(this.storeId, reviewId, replyText, this.isAdmin)
       .subscribe({
-        next: (updatedReview) => {
+        next: (response) => {
+          console.log('Reply successful:', response);
+          
           // Find the review in the array and update it
           const reviewIndex = this.reviews.findIndex(r => r._id === reviewId);
           if (reviewIndex !== -1) {
-            // If the review doesn't have replies array, create it
-            if (!this.reviews[reviewIndex].replies) {
-              this.reviews[reviewIndex].replies = [];
+            // If we received a full review object with replies, use that
+            if (response && response.replies) {
+              this.reviews[reviewIndex] = response;
+            } 
+            // Otherwise just update the replies array
+            else {
+              // If the review doesn't have replies array, create it
+              if (!this.reviews[reviewIndex].replies) {
+                this.reviews[reviewIndex].replies = [];
+              }
+              
+              // Add the new reply to the review
+              const newReply = {
+                reply_id: new Date().getTime().toString(), // Temporary ID until we get the real one
+                text: replyText,
+                user: userId,
+                isAdmin: this.isAdmin,
+                created_at: new Date()
+              };
+              
+              this.reviews[reviewIndex].replies.push(newReply);
             }
-            
-            // Add the new reply to the review
-            const newReply = {
-              reply_id: new Date().getTime().toString(), // Temporary ID until we get the real one
-              text: replyText,
-              user: userId,
-              isAdmin: this.isAdmin,
-              created_at: new Date()
-            };
-            
-            this.reviews[reviewIndex].replies.push(newReply);
             
             // Reset form and exit reply mode
             this.replyForm.reset();
@@ -355,9 +364,13 @@ export class ReviewListComponent implements OnInit {
               updated: true,
               review: this.reviews[reviewIndex]
             });
+          } else {
+            // If review not found, reload all reviews
+            this.loadReviews();
           }
         },
         error: (error) => {
+          this.error = error.message || 'Failed to reply to review. Please try again.';
           console.error('Error replying to review:', error);
         }
       });

@@ -21,7 +21,21 @@
     <div class="alert alert-danger">
       {{ error }}
     </div>
-    <button (click)="loadUsers()" class="btn btn-outline">Retry</button>
+    <button (click)="loadUsers()" class="btn btn-outline">RETRY</button>
+    
+    <!-- API Status Panel -->
+    <div class="api-status-panel">
+      <h3>API Status Panel</h3>
+      <div class="status-info">
+        <p [ngClass]="{'status-connected': apiStatus?.connected, 'status-disconnected': !apiStatus?.connected}">
+          Backend API: {{ apiStatus?.connected ? 'Connected' : 'Disconnected' }}
+        </p>
+        <p [ngClass]="{'status-connected': apiStatus?.authenticated, 'status-disconnected': !apiStatus?.authenticated}">
+          Auth Status: {{ apiStatus?.authenticated ? 'Authenticated' : 'Not Authenticated' }}
+        </p>
+      </div>
+      <button (click)="checkApiStatus()" class="btn btn-sm">Check API Status</button>
+    </div>
   </div>
   
   <!-- Users Table -->

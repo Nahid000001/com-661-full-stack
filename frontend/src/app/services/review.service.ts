@@ -109,14 +109,22 @@ export class ReviewService {
   }
 
   replyToReview(storeId: string, reviewId: string, reply: string, isAdmin: boolean = false): Observable<Review> {
-    return this.http.post<Review>(`${environment.apiUrl}/stores/${storeId}/reviews/${reviewId}/reply`, { reply, isAdmin })
-      .pipe(
-        catchError((error: HttpErrorResponse) => {
-          console.error('Error replying to review:', error);
-          this.errorService.setError(error.error?.message || 'Failed to reply to review');
-          return throwError(() => error);
-        })
-      );
+    // Ensure the property name matches what the backend expects
+    const payload = { reply, isAdmin };
+    
+    return this.http.post<Review>(
+      `${environment.apiUrl}/stores/${storeId}/reviews/${reviewId}/reply`, 
+      payload,
+      { headers: { 'Content-Type': 'application/json' } }
+    ).pipe(
+      timeout(15000),
+      catchError((error: HttpErrorResponse) => {
+        console.error('Error replying to review:', error);
+        const errorMessage = error.error?.message || 'Failed to reply to review. Please try again.';
+        this.errorService.setError(errorMessage);
+        return throwError(() => new Error(errorMessage));
+      })
+    );
   }
 
   editReplyToReview(storeId: string, reviewId: string, replyId: string, reply: string): Observable<any> {

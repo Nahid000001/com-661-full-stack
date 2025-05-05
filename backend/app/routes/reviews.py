@@ -10,6 +10,7 @@ from app.utils.error_handler import (
     ValidationError
 )
 from datetime import datetime
+from app import mongo  # Import mongo for database access
 
 reviews_bp = Blueprint('reviews', __name__)
 
@@ -176,6 +177,9 @@ def reply_to_store_review(store_id, review_id):
             
         data = request.get_json()
         reply_text = data.get("reply", "").strip()
+        # Accept both isAdmin and is_admin for better compatibility
+        is_admin_flag = data.get("isAdmin", data.get("is_admin", False))
+        
         user = get_jwt_identity()
         claims = get_jwt()
         
@@ -187,12 +191,15 @@ def reply_to_store_review(store_id, review_id):
         if not store_data:
             raise ResourceNotFoundError("Store not found")
             
-        if claims.get("role") != "admin" and store_data.get("owner", "") != user:
-            raise ForbiddenError("Unauthorized: Only the store owner or admin can reply")
-            
-        # Set is_admin to true if the user has the admin role
-        is_admin = claims.get("role") == "admin"
-            
+        # Check if user has admin role or is the store owner
+        user_role = claims.get("role", "customer")
+        is_admin = user_role == "admin"
+        is_store_owner = store_data.get("owner", "") == user
+        
+        if not is_admin and not is_store_owner:
+            raise ForbiddenError("Unauthorized: Only the store owner or admin can reply to reviews")
+        
+        # Use the role from JWT claims rather than client-provided flag for security
         success, message = review.add_reply_to_review(store_id, review_id, user, reply_text, is_admin)
         if not success:
             raise ResourceNotFoundError(message)
@@ -202,10 +209,12 @@ def reply_to_store_review(store_id, review_id):
         if not updated_store:
             raise ResourceNotFoundError("Store not found")
             
-        # Find the reviewer to notify them
+        # Find the review to return
         review_obj = None
         for r in updated_store.get("reviews", []):
             if r.get("review_id") == review_id:
+                # Add the review ID to match frontend expectations
+                r["_id"] = review_id
                 review_obj = r
                 break
                 
@@ -227,7 +236,10 @@ def reply_to_store_review(store_id, review_id):
                 }
                 mongo.db.notifications.insert_one(notification)
             
-        return jsonify({"message": message}), 201
+        return jsonify({
+            "message": message,
+            "review": review_obj
+        }), 201
         
     except (ValidationError, ResourceNotFoundError, ForbiddenError) as e:
         raise e
