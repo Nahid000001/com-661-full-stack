@@ -8,6 +8,7 @@ import { tokenRefreshInterceptor } from './interceptors/token-refresh.intercepto
 import { errorInterceptor } from './interceptors/error.interceptor';
 import { loadingInterceptor } from './interceptors/loading.interceptor';
 import { GlobalErrorHandler } from './handlers/global-error.handler';
+import { environment } from '../environments/environment';
 
 export const appConfig: ApplicationConfig = {
   providers: [
