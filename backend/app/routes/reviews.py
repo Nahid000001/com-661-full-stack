@@ -11,6 +11,7 @@ from app.utils.error_handler import (
 )
 from datetime import datetime
 from app import mongo  # Import mongo for database access
+from bson.objectid import ObjectId
 
 reviews_bp = Blueprint('reviews', __name__)
 
@@ -326,36 +327,177 @@ def get_user_reviews_with_replies():
 @reviews_bp.route('/admin/all', methods=['GET'])
 @jwt_required()
 def get_all_reviews_admin():
-    """Admin endpoint to get all reviews across all stores."""
+    """Get all reviews (admin only)."""
     try:
-        # Check admin role
+        user = get_jwt_identity()
         claims = get_jwt()
         user_role = claims.get("role", "customer")
         
         if user_role != "admin":
-            raise ForbiddenError("Admin access required")
-        
-        # Get all stores
-        stores = list(mongo.db.stores.find({}, {"company_name": 1, "reviews": 1}))
-        
-        all_reviews = []
-        for store_doc in stores:
-            store_id = str(store_doc.get("_id"))
-            store_name = store_doc.get("company_name", "Unknown Store")
+            raise ForbiddenError("Unauthorized: Admin access required")
             
-            # Add store info to all reviews from this store
-            for review_obj in store_doc.get("reviews", []):
-                review_obj["_id"] = review_obj.get("review_id", "")
-                review_obj["store_id"] = store_id
-                review_obj["store_name"] = store_name
-                all_reviews.append(review_obj)
+        # Get all stores
+        stores = list(mongo.db.stores.find({}, {
+            "_id": 1, 
+            "company_name": 1, 
+            "owner": 1, 
+            "reviews": 1
+        }))
         
-        # Sort by date (newest first)
+        # Extract all reviews with full relational data
+        all_reviews = []
+        
+        for store_doc in stores:
+            store_id = store_doc.get("_id")
+            store_name = store_doc.get("company_name", "Unknown Store")
+            store_owner_id = store_doc.get("owner")
+            
+            # Skip if store has no reviews
+            if "reviews" not in store_doc or not store_doc["reviews"]:
+                continue
+            
+            # Get store owner details
+            store_owner = None
+            if store_owner_id:
+                owner_doc = mongo.db.users.find_one({"_id": ObjectId(store_owner_id)})
+                if owner_doc:
+                    store_owner = {
+                        "id": str(owner_doc["_id"]),
+                        "name": owner_doc.get("name", "Unknown"),
+                        "email": owner_doc.get("email", "Unknown")
+                    }
+            
+            # Process each review
+            for review_doc in store_doc.get("reviews", []):
+                reviewer_id = review_doc.get("user")
+                reviewer = None
+                
+                # Get reviewer details
+                if reviewer_id:
+                    reviewer_doc = mongo.db.users.find_one({"_id": ObjectId(reviewer_id)})
+                    if reviewer_doc:
+                        reviewer = {
+                            "id": str(reviewer_doc["_id"]),
+                            "name": reviewer_doc.get("name", "Unknown"),
+                            "email": reviewer_doc.get("email", "Unknown")
+                        }
+                
+                # Extract admin replies
+                admin_reply = None
+                for reply in review_doc.get("replies", []):
+                    if reply.get("isAdmin"):
+                        admin_reply = reply
+                        break
+                
+                # Create the enriched review object
+                enriched_review = {
+                    "review_id": review_doc.get("review_id"),
+                    "text": review_doc.get("comment"),
+                    "rating": review_doc.get("rating"),
+                    "created_at": review_doc.get("created_at"),
+                    "store": {
+                        "id": str(store_id),
+                        "name": store_name
+                    },
+                    "reviewer": reviewer,
+                    "store_owner": store_owner,
+                    "admin_reply": admin_reply
+                }
+                
+                all_reviews.append(enriched_review)
+        
+        # Sort reviews by created_at date (newest first)
         all_reviews.sort(key=lambda x: x.get("created_at", datetime.min), reverse=True)
         
         return jsonify({"reviews": all_reviews}), 200
         
     except ForbiddenError as e:
+        raise e
+    except Exception as e:
+        raise ApiError(str(e))
+
+@reviews_bp.route('/admin/reviews/<review_id>/reply', methods=['POST'])
+@jwt_required()
+def admin_reply_to_review(review_id):
+    """Submit or update an admin reply to a review."""
+    try:
+        user = get_jwt_identity()
+        claims = get_jwt()
+        user_role = claims.get("role", "customer")
+        
+        if user_role != "admin":
+            raise ForbiddenError("Unauthorized: Admin access required")
+            
+        data = request.get_json()
+        reply_text = data.get("reply", "").strip()
+        
+        if not reply_text:
+            raise ValidationError("Reply text is required")
+            
+        # Find the review in all stores
+        found = False
+        store_id = None
+        review_obj = None
+        
+        # This is inefficient but necessary since we don't have a direct way to look up a review by id
+        stores = list(mongo.db.stores.find({"reviews.review_id": review_id}))
+        for store_doc in stores:
+            store_id = store_doc.get("_id")
+            reviews = store_doc.get("reviews", [])
+            for rev in reviews:
+                if rev.get("review_id") == review_id:
+                    review_obj = rev
+                    found = True
+                    break
+            if found:
+                break
+        
+        if not found or not store_id:
+            raise ResourceNotFoundError("Review not found")
+        
+        # Check if review already has an admin reply
+        has_admin_reply = False
+        admin_reply_id = None
+        
+        for reply in review_obj.get("replies", []):
+            if reply.get("isAdmin"):
+                has_admin_reply = True
+                admin_reply_id = reply.get("reply_id")
+                break
+        
+        # If there's an existing admin reply, update it
+        if has_admin_reply and admin_reply_id:
+            result = mongo.db.stores.update_one(
+                {
+                    "_id": ObjectId(store_id),
+                    "reviews.review_id": review_id,
+                    "reviews.replies.reply_id": admin_reply_id
+                },
+                {
+                    "$set": {
+                        "reviews.$.replies.$[reply].text": reply_text,
+                        "reviews.$.replies.$[reply].updated_at": datetime.utcnow()
+                    }
+                },
+                array_filters=[{"reply.reply_id": admin_reply_id}]
+            )
+            
+            if result.modified_count == 0:
+                raise ApiError("Failed to update admin reply")
+            
+            return jsonify({"message": "Admin reply updated successfully"}), 200
+        
+        # Otherwise, add a new admin reply
+        success, message = review.add_reply_to_review(
+            str(store_id), review_id, user, reply_text, is_admin=True
+        )
+        
+        if not success:
+            raise ApiError(message)
+        
+        return jsonify({"message": "Admin reply added successfully"}), 201
+        
+    except (ValidationError, ResourceNotFoundError, ForbiddenError) as e:
         raise e
     except Exception as e:
         raise ApiError(str(e))

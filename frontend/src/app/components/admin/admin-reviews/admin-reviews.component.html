@@ -1,6 +1,6 @@
 <div class="admin-reviews">
   <header class="admin-header">
-    <h1>Manage Reviews</h1>
+    <h1>Manage Customer Reviews</h1>
     <a routerLink="/admin" class="back-link">
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="19" y1="12" x2="5" y2="12"></line>
@@ -29,34 +29,81 @@
     <table class="reviews-table">
       <thead>
         <tr>
-          <th>Store</th>
-          <th>User</th>
-          <th>Rating</th>
           <th>Review</th>
+          <th>Rating</th>
+          <th>Reviewer</th>
+          <th>Store</th>
+          <th>Store Owner</th>
           <th>Date</th>
+          <th>Admin Reply</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let review of reviews">
-          <td>
-            <a [routerLink]="['/stores', review.store_id]">{{ review.store_name || 'Unknown Store' }}</a>
-          </td>
-          <td>{{ review.username || 'Anonymous' }}</td>
+          <td class="review-text">{{ review.text }}</td>
           <td>
             <div class="star-rating">
               <span *ngFor="let i of [1, 2, 3, 4, 5]" [class.filled]="i <= review.rating">★</span>
             </div>
           </td>
-          <td class="review-text">
-            <div class="review-content">{{ review.comment }}</div>
-            <div *ngIf="review.response" class="review-response">
-              <strong>Response:</strong> {{ review.response }}
+          <td>
+            <div *ngIf="review.reviewer">
+              <div>{{ review.reviewer.name }}</div>
+              <div class="small-text">{{ review.reviewer.email }}</div>
             </div>
+            <div *ngIf="!review.reviewer">Anonymous</div>
+          </td>
+          <td>
+            <a [routerLink]="['/stores', review.store.id]">{{ review.store.name }}</a>
+          </td>
+          <td>
+            <div *ngIf="review.store_owner">
+              <div>{{ review.store_owner.name }}</div>
+              <div class="small-text">{{ review.store_owner.email }}</div>
+            </div>
+            <div *ngIf="!review.store_owner">Unknown</div>
           </td>
           <td>{{ review.created_at | date:'medium' }}</td>
+          <td class="reply-cell">
+            <div class="reply-form">
+              <div *ngIf="review.admin_reply" class="current-reply">
+                <div class="reply-text">{{ review.admin_reply.text }}</div>
+                <div class="small-text">{{ review.admin_reply.created_at | date:'short' }}</div>
+              </div>
+              
+              <textarea 
+                [(ngModel)]="replyText[review.review_id]" 
+                placeholder="Type your reply..." 
+                rows="3" 
+                class="reply-textarea">
+              </textarea>
+              
+              <div class="reply-actions">
+                <button 
+                  (click)="submitReply(review.review_id)" 
+                  class="btn btn-primary" 
+                  [disabled]="submittingReply[review.review_id]">
+                  <ng-container *ngIf="!submittingReply[review.review_id]; else loadingButton">
+                    {{ review.admin_reply ? 'Update Reply' : 'Submit Reply' }}
+                  </ng-container>
+                  <ng-template #loadingButton>
+                    Submitting...
+                  </ng-template>
+                </button>
+              </div>
+              
+              <div *ngIf="replySuccess[review.review_id]" class="success-message">
+                Reply submitted successfully!
+              </div>
+              
+              <div *ngIf="replyError[review.review_id]" class="error-message">
+                {{ replyError[review.review_id] }}
+              </div>
+            </div>
+          </td>
           <td class="actions">
-            <button (click)="deleteReview(review._id, review.store_id)" class="btn btn-sm btn-danger" title="Delete">
+            <button (click)="deleteReview(review.review_id, review.store.id)" class="btn btn-sm btn-danger" title="Delete Review">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="3 6 5 6 21 6"></polyline>
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>

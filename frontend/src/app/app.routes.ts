@@ -18,6 +18,14 @@ export const routes: Routes = [
     component: OAuthCallbackComponent
   },
   { 
+    path: 'oauth-callback',
+    component: OAuthCallbackComponent
+  },
+  { 
+    path: 'oauth-callback/:provider',
+    component: OAuthCallbackComponent
+  },
+  { 
     path: 'stores',
     loadComponent: () => import('./components/store-list/store-list.component').then(m => m.StoreListComponent)
   },

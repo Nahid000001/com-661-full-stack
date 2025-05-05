@@ -51,7 +51,7 @@ class User:
     """User model for authentication"""
     
     @staticmethod
-    def create_user(email, password, first_name='', last_name='', username='', role='customer'):
+    def create_user(email, password, first_name='', last_name='', username='', role='customer', google_id=None, profile_picture=None):
         """Create a new user"""
         # If username is not provided, generate one from email
         if not username and email:
@@ -72,6 +72,13 @@ class User:
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
         }
+        
+        # Add Google specific fields if provided
+        if google_id:
+            user["google_id"] = google_id
+        
+        if profile_picture:
+            user["profile_picture"] = profile_picture
         
         try:
             result = mongo.db.users.insert_one(user)
@@ -99,3 +106,8 @@ class User:
     def check_password(user, password):
         """Check if password is valid"""
         return check_password_hash(user["password"], password)
+    
+    @staticmethod
+    def get_user_by_google_id(google_id):
+        """Get a user by Google ID"""
+        return mongo.db.users.find_one({"google_id": google_id})

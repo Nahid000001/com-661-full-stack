@@ -219,6 +219,17 @@ export class ReviewService {
       );
   }
   
+  submitAdminReply(reviewId: string, reply: string): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/admin/reviews/${reviewId}/reply`, { reply })
+      .pipe(
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error submitting admin reply:', error);
+          this.errorService.setError(error.error?.message || 'Failed to submit reply');
+          return throwError(() => error);
+        })
+      );
+  }
+  
   private handleError(error: any) {
     let errorMessage = '';
     if (error.error instanceof ErrorEvent) {
