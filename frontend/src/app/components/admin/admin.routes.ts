@@ -10,6 +10,10 @@ export const ADMIN_ROUTES: Routes = [
     loadComponent: () => import('./admin-stores/admin-stores.component').then(m => m.AdminStoresComponent),
   },
   {
+    path: 'stores/add',
+    loadComponent: () => import('./admin-stores/admin-add-store.component').then(m => m.AdminAddStoreComponent),
+  },
+  {
     path: 'users',
     loadComponent: () => import('./admin-users/admin-users.component').then(m => m.AdminUsersComponent),
   },

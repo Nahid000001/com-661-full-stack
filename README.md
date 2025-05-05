@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Clothing Store Application
 
 A web application for discovering and reviewing clothing stores with Angular frontend and Flask/Python backend.
@@ -304,6 +303,3 @@ Additional improvements to make:
 6. Improve error handling and logging
 7. Add comprehensive tests
 8. Complete documentation
-=======
-# com-661-full-stack
->>>>>>> 6b7cd0357e00adfed70152ff121155868c97bc91

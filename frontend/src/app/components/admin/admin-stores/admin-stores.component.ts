@@ -40,7 +40,12 @@ export class AdminStoresComponent implements OnInit {
     });
   }
 
-  deleteStore(id: string): void {
+  deleteStore(id: string | undefined): void {
+    if (!id) {
+      alert('Invalid store ID. Cannot delete this store.');
+      return;
+    }
+    
     if (confirm('Are you sure you want to delete this store? This action cannot be undone.')) {
       this.storeService.deleteStore(id).subscribe({
         next: () => {

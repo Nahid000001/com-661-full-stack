@@ -26,18 +26,25 @@ def create_store(store_data, owner):
             )
             return {"store_id": str(existing_store["_id"]), "branch_id": branch_id, "is_new": False}
     
-    # Create new store
+    # Create new store with enhanced fields
     store = {
         "company_name": store_data.get("company_name"),
         "title": store_data.get("title"),
         "description": store_data.get("description"),
         "location": store_data.get("location"),
         "work_type": store_data.get("work_type"),
+        "contact_email": store_data.get("contact_email", ""),
+        "contact_phone": store_data.get("contact_phone", ""),
+        "store_category": store_data.get("store_category", ""),
+        "image": store_data.get("image", ""),
         "branches": [branch_id],
         "views": 0,
         "reviews": [],
         "owner": owner,
-        "created_at": get_current_time()
+        "managers": store_data.get("managers", []),
+        "created_at": get_current_time(),
+        "updated_at": get_current_time(),
+        "created_by": store_data.get("created_by", owner)  # Track who created the store
     }
     
     store_id = mongo.db.stores.insert_one(store).inserted_id
@@ -263,3 +270,101 @@ def delete_branch(store_id, branch_id, owner):
         store_deleted = True
     
     return True, "Branch deleted successfully", store_deleted
+
+def assign_store_owner(store_id, new_owner_id, admin_id):
+    """Assign a new owner to a store."""
+    try:
+        store = mongo.db.stores.find_one({"_id": ObjectId(store_id)})
+        if not store:
+            return False, "Store not found"
+        
+        # Update owner
+        result = mongo.db.stores.update_one(
+            {"_id": ObjectId(store_id)}, 
+            {
+                "$set": {
+                    "owner": new_owner_id,
+                    "updated_at": get_current_time(),
+                    "updated_by": admin_id
+                }
+            }
+        )
+        
+        if result.modified_count == 0:
+            return False, "No changes made. Owner might already be assigned."
+            
+        return True, "Store owner assigned successfully"
+    except Exception as e:
+        return False, f"Error assigning store owner: {str(e)}"
+
+def assign_store_manager(store_id, manager_id, assigned_by):
+    """Add a manager to a store."""
+    try:
+        store = mongo.db.stores.find_one({"_id": ObjectId(store_id)})
+        if not store:
+            return False, "Store not found"
+        
+        # Check if manager is already assigned
+        managers = store.get("managers", [])
+        if manager_id in managers:
+            return False, "User is already a manager for this store"
+        
+        # Add manager
+        result = mongo.db.stores.update_one(
+            {"_id": ObjectId(store_id)}, 
+            {
+                "$push": {"managers": manager_id},
+                "$set": {
+                    "updated_at": get_current_time(),
+                    "updated_by": assigned_by
+                }
+            }
+        )
+        
+        if result.modified_count == 0:
+            return False, "No changes made"
+            
+        return True, "Store manager assigned successfully"
+    except Exception as e:
+        return False, f"Error assigning store manager: {str(e)}"
+
+def remove_store_manager(store_id, manager_id, removed_by):
+    """Remove a manager from a store."""
+    try:
+        store = mongo.db.stores.find_one({"_id": ObjectId(store_id)})
+        if not store:
+            return False, "Store not found"
+        
+        # Remove manager
+        result = mongo.db.stores.update_one(
+            {"_id": ObjectId(store_id)}, 
+            {
+                "$pull": {"managers": manager_id},
+                "$set": {
+                    "updated_at": get_current_time(),
+                    "updated_by": removed_by
+                }
+            }
+        )
+        
+        if result.modified_count == 0:
+            return False, "No changes made. Manager might not be assigned."
+            
+        return True, "Store manager removed successfully"
+    except Exception as e:
+        return False, f"Error removing store manager: {str(e)}"
+
+def get_store_staff(store_id):
+    """Get the owner and managers of a store."""
+    try:
+        store = mongo.db.stores.find_one({"_id": ObjectId(store_id)})
+        if not store:
+            return None
+            
+        return {
+            "owner": store.get("owner"),
+            "managers": store.get("managers", [])
+        }
+    except Exception as e:
+        print(f"Error retrieving store staff: {str(e)}")
+        return None

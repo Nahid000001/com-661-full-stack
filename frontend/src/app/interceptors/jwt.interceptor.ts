@@ -6,6 +6,11 @@ import { AuthService } from '../services/auth.service';
 export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   
+  // Skip token for refresh token requests - they handle auth separately
+  if (req.url.includes('/refresh')) {
+    return next(req);
+  }
+  
   // Add authorization header with jwt token if available
   const currentUser = authService.currentUserValue;
   if (currentUser && currentUser.token) {

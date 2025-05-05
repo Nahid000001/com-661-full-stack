@@ -3,19 +3,34 @@
   <div class="container">
     <!-- Back button -->
     <div class="back-navigation">
-      <a routerLink="/stores" class="back-link">
+      <a [routerLink]="router.url.includes('/admin/') ? '/admin/stores' : '/stores'" class="back-link">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="19" y1="12" x2="5" y2="12"></line>
           <polyline points="12 19 5 12 12 5"></polyline>
         </svg>
-        Back to Stores
+        {{ router.url.includes('/admin/') ? 'Back to Admin Stores' : 'Back to Stores' }}
       </a>
     </div>
 
     <h1 class="form-title">{{ isEdit ? 'Edit Store' : 'Add New Store' }}</h1>
     
     <!-- Error and Success Messages -->
-    <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+    <div *ngIf="error" class="alert alert-danger">
+      {{ error }}
+      <div class="error-actions" *ngIf="error.includes('failed') || error.includes('Failed') || error.includes('Network')">
+        <p>Having trouble? <a routerLink="/health-check">Check system status</a></p>
+        
+        <div class="troubleshooting-steps">
+          <h4>Troubleshooting Steps:</h4>
+          <ol>
+            <li>Make sure the backend service is running on port 5000</li>
+            <li>Run the backend service with: <code>cd backend && python run.py</code></li>
+            <li>Verify MongoDB is running and accessible</li>
+            <li>Check network connectivity and ensure no firewall is blocking connections</li>
+          </ol>
+        </div>
+      </div>
+    </div>
     <div *ngIf="success" class="alert alert-success">{{ success }}</div>
     
     <!-- Loading State -->
@@ -78,7 +93,7 @@
       </div>
       
       <div class="form-actions">
-        <button type="button" class="btn btn-secondary" routerLink="/stores">Cancel</button>
+        <button type="button" class="btn btn-secondary" [routerLink]="router.url.includes('/admin/') ? '/admin/stores' : '/stores'">Cancel</button>
         <button type="submit" class="btn btn-primary" [disabled]="storeForm.invalid">
           {{ isEdit ? 'Update Store' : 'Create Store' }}
         </button>

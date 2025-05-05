@@ -191,14 +191,13 @@ export class AuthService {
     
     const httpOptions = {
       headers: new HttpHeaders({
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${user.refreshToken}`
       }),
       withCredentials: true
     };
     
-    return this.http.post<any>(`${environment.apiUrl}/refresh`, {
-      refresh_token: user.refreshToken
-    }, httpOptions).pipe(
+    return this.http.post<any>(`${environment.apiUrl}/refresh`, {}, httpOptions).pipe(
       map(response => {
         if (response && response.access_token) {
           // Update stored token
@@ -237,7 +236,15 @@ export class AuthService {
     // Revoke token on the server (best practice)
     const user = this.currentUserValue;
     if (user && user.token) {
-      this.http.post(`${environment.apiUrl}/logout`, {}).subscribe({
+      const refreshJti = this.decodeToken(user.refreshToken)?.jti;
+      
+      const httpOptions = refreshJti ? {
+        headers: new HttpHeaders({
+          'X-Refresh-Token-JTI': refreshJti
+        })
+      } : undefined;
+      
+      this.http.post(`${environment.apiUrl}/logout`, {}, httpOptions).subscribe({
         next: () => this.clearUserData(),
         error: () => this.clearUserData()
       });
@@ -316,6 +323,44 @@ export class AuthService {
     const hasRequiredRole = userRole === role;
     console.log('hasRole check - String check result:', hasRequiredRole);
     return hasRequiredRole;
+  }
+
+  // Get detailed information about the current authentication state
+  getAuthState() {
+    const currentUser = this.currentUserValue;
+    if (!currentUser) {
+      return {
+        isLoggedIn: false,
+        username: null,
+        userId: null,
+        role: 'guest',
+        token: null
+      };
+    }
+    
+    // Check if token is expired
+    const isExpired = this.isTokenExpired(currentUser.token);
+    
+    if (isExpired) {
+      return {
+        isLoggedIn: false,
+        username: null,
+        userId: null,
+        role: 'guest',
+        token: null,
+        tokenExpired: true
+      };
+    }
+    
+    const decodedToken = this.decodeToken(currentUser.token);
+    
+    return {
+      isLoggedIn: true,
+      username: currentUser.username,
+      userId: currentUser.userId || decodedToken?.sub,
+      role: decodedToken?.role || 'customer',
+      token: currentUser.token
+    };
   }
 }
 

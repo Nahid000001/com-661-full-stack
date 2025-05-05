@@ -259,4 +259,69 @@ def delete_user(user_id):
             "message": "User deleted successfully"
         }), 200
     except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@user_bp.route('/search', methods=['GET'])
+@jwt_required()
+def search_users():
+    """
+    Search for users by username or name
+    ---
+    tags:
+      - Users
+    security:
+      - bearerAuth: []
+    parameters:
+      - name: q
+        in: query
+        schema:
+          type: string
+        description: Search query
+    responses:
+      200:
+        description: List of matching users
+      401:
+        description: Unauthorized
+    """
+    try:
+        user_id, role = get_user_details()
+        
+        # Only logged-in users can search
+        if not user_id:
+            return jsonify({"error": "Authentication required"}), 401
+        
+        # Get search query
+        query = request.args.get('q', '')
+        if not query or len(query) < 2:
+            return jsonify([]), 200
+            
+        # Create case-insensitive regex pattern
+        import re
+        pattern = re.compile(f".*{re.escape(query)}.*", re.IGNORECASE)
+        
+        # Search in username, first_name, and last_name fields
+        users = list(mongo.db.users.find({
+            "$or": [
+                {"username": {"$regex": pattern}},
+                {"first_name": {"$regex": pattern}},
+                {"last_name": {"$regex": pattern}},
+                {"email": {"$regex": pattern}}
+            ]
+        }, {
+            "password": 0,  # Exclude password field
+            "_id": 0        # Exclude MongoDB ID
+        }).limit(10))  # Limit to 10 results
+        
+        # If admin, return all users
+        # If regular user, only return public info
+        if role != "admin":
+            for user in users:
+                # Remove sensitive fields for non-admins
+                if "email" in user:
+                    del user["email"]
+        
+        return jsonify(users), 200
+        
+    except Exception as e:
+        print(f"Error searching users: {str(e)}")
         return jsonify({"error": str(e)}), 500 

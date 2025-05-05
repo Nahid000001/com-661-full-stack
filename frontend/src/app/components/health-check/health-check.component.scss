@@ -1,57 +1,195 @@
 .health-check-container {
-  padding: 12px;
-  border-radius: 4px;
-  margin-bottom: 16px;
-  font-size: 14px;
-}
-
-.status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-radius: 4px;
-}
-
-.loading {
-  background-color: #f0f0f0;
-  color: #666;
-}
-
-.connected {
-  background-color: #d4edda;
-  color: #155724;
-}
-
-.error {
-  background-color: #f8d7da;
-  color: #721c24;
-}
-
-.spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(0, 0, 0, 0.1);
-  border-top-color: #09f;
-  border-radius: 50%;
-  animation: spin 1s ease-in-out infinite;
-}
-
-.retry-btn {
-  margin-left: auto;
-  background-color: #dc3545;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.retry-btn:hover {
-  background-color: #c82333;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 1rem;
+  
+  h1 {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #333;
+  }
+  
+  h2 {
+    color: #444;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .health-status-card {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .status {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+    border-radius: 6px;
+    
+    svg {
+      margin-bottom: 0.5rem;
+    }
+    
+    &.loading {
+      background-color: #f8f9fa;
+      
+      .spinner {
+        width: 30px;
+        height: 30px;
+        border: 3px solid rgba(0, 123, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: #007bff;
+        animation: spin 1s ease-in-out infinite;
+        margin-bottom: 1rem;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    }
+    
+    &.connected {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+      
+      svg {
+        stroke: #2e7d32;
+      }
+      
+      .details {
+        margin-top: 1rem;
+        width: 100%;
+        
+        p {
+          margin: 0.5rem 0;
+        }
+      }
+    }
+    
+    &.error {
+      background-color: #ffebee;
+      color: #c62828;
+      
+      svg {
+        stroke: #c62828;
+      }
+      
+      .error-details {
+        margin: 1rem 0;
+        width: 100%;
+        text-align: center;
+        
+        .error-highlight {
+          font-weight: bold;
+          color: #d32f2f;
+        }
+      }
+    }
+  }
+  
+  button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s, transform 0.1s;
+    margin: 0.5rem;
+    
+    &:hover {
+      transform: translateY(-1px);
+    }
+    
+    &:active {
+      transform: translateY(1px);
+    }
+    
+    &.primary {
+      background-color: #007bff;
+      color: white;
+      
+      &:hover {
+        background-color: #0069d9;
+      }
+    }
+    
+    &.secondary {
+      background-color: #6c757d;
+      color: white;
+      
+      &:hover {
+        background-color: #5a6268;
+      }
+    }
+    
+    &.retry-btn {
+      margin-top: 1rem;
+    }
+    
+    &.test-btn {
+      margin-top: 0.5rem;
+    }
+  }
+  
+  .auth-status {
+    display: flex;
+    padding: 1rem;
+    border-radius: 6px;
+    
+    &.auth-success {
+      background-color: #e8f5e9;
+      
+      .auth-icon svg {
+        stroke: #2e7d32;
+      }
+    }
+    
+    &.auth-error {
+      background-color: #ffebee;
+      
+      .auth-icon svg {
+        stroke: #c62828;
+      }
+    }
+    
+    .auth-icon {
+      margin-right: 1rem;
+    }
+    
+    .auth-details {
+      flex: 1;
+      
+      p {
+        margin: 0.25rem 0;
+      }
+      
+      .error-highlight {
+        font-weight: bold;
+        color: #d32f2f;
+      }
+    }
+  }
+  
+  .diagnostic-info {
+    background-color: #f5f5f5;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    
+    p {
+      margin: 0.5rem 0;
+      font-family: monospace;
+    }
+  }
+  
+  .actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 2rem;
+  }
 } 

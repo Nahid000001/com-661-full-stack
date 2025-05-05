@@ -1,0 +1,214 @@
+<div class="admin-add-store-container">
+  <div class="container">
+    <!-- Back button -->
+    <div class="back-navigation">
+      <a routerLink="/admin/stores" class="back-link">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        Back to Admin Stores
+      </a>
+    </div>
+
+    <h1 class="form-title">Add New Store (Admin)</h1>
+    
+    <!-- Error and Success Messages -->
+    <div *ngIf="error" class="alert alert-danger">
+      {{ error }}
+    </div>
+    <div *ngIf="success" class="alert alert-success">{{ success }}</div>
+    
+    <!-- Loading State -->
+    <div *ngIf="loading" class="loading-container">
+      <div class="spinner"></div>
+      <p class="loading-text">Creating store...</p>
+    </div>
+    
+    <!-- Store Form -->
+    <form [formGroup]="storeForm" (ngSubmit)="onSubmit()" *ngIf="!loading">
+      <div class="form-section">
+        <h3>Store Information</h3>
+        
+        <div class="form-group">
+          <label for="company_name">Company Name *</label>
+          <input type="text" id="company_name" class="form-control" formControlName="company_name" placeholder="Enter company name">
+          <div *ngIf="storeForm.get('company_name')?.touched && storeForm.get('company_name')?.errors?.['required']" class="form-error">
+            Company name is required
+          </div>
+          <div *ngIf="storeForm.get('company_name')?.touched && storeForm.get('company_name')?.errors?.['minlength']" class="form-error">
+            Company name must be at least 2 characters
+          </div>
+        </div>
+      
+        <div class="form-group">
+          <label for="title">Store Slogan/Title *</label>
+          <input type="text" id="title" class="form-control" formControlName="title" placeholder="Enter a catchy slogan or title">
+          <div *ngIf="storeForm.get('title')?.touched && storeForm.get('title')?.errors?.['required']" class="form-error">
+            Store slogan/title is required
+          </div>
+        </div>
+      
+        <div class="form-group">
+          <label for="description">Description *</label>
+          <textarea id="description" class="form-control" formControlName="description" rows="5" placeholder="Enter detailed description of the store"></textarea>
+          <div *ngIf="storeForm.get('description')?.touched && storeForm.get('description')?.errors?.['required']" class="form-error">
+            Description is required
+          </div>
+          <div *ngIf="storeForm.get('description')?.touched && storeForm.get('description')?.errors?.['minlength']" class="form-error">
+            Description must be at least 10 characters
+          </div>
+        </div>
+      </div>
+      
+      <div class="form-section">
+        <h3>Location & Category</h3>
+      
+        <div class="form-group">
+          <label for="location">Location *</label>
+          <input type="text" id="location" class="form-control" formControlName="location" placeholder="Enter store location (e.g., City, State)">
+          <div *ngIf="storeForm.get('location')?.touched && storeForm.get('location')?.errors?.['required']" class="form-error">
+            Location is required
+          </div>
+        </div>
+      
+        <div class="form-row">
+          <div class="form-group half-width">
+            <label for="work_type">Store Type *</label>
+            <select id="work_type" class="form-control" formControlName="work_type">
+              <option value="retail">Retail</option>
+              <option value="boutique">Boutique</option>
+              <option value="designer">Designer</option>
+              <option value="casual">Casual</option>
+              <option value="luxury">Luxury</option>
+              <option value="sustainable">Sustainable</option>
+              <option value="manufacturing">Manufacturing</option>
+              <option value="wholesale">Wholesale</option>
+              <option value="online">Online Only</option>
+              <option value="outlet">Outlet</option>
+            </select>
+            <div *ngIf="storeForm.get('work_type')?.touched && storeForm.get('work_type')?.errors?.['required']" class="form-error">
+              Store type is required
+            </div>
+          </div>
+          
+          <div class="form-group half-width">
+            <label for="store_category">Store Category *</label>
+            <select id="store_category" class="form-control" formControlName="store_category">
+              <option value="clothing">Clothing</option>
+              <option value="shoes">Shoes</option>
+              <option value="accessories">Accessories</option>
+              <option value="jewelry">Jewelry</option>
+              <option value="sportswear">Sportswear</option>
+              <option value="children">Children's Clothing</option>
+              <option value="formal">Formal Wear</option>
+              <option value="vintage">Vintage/Secondhand</option>
+              <option value="multi">Multi-category</option>
+            </select>
+            <div *ngIf="storeForm.get('store_category')?.touched && storeForm.get('store_category')?.errors?.['required']" class="form-error">
+              Store category is required
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="form-section">
+        <h3>Contact Information</h3>
+        
+        <div class="form-row">
+          <div class="form-group half-width">
+            <label for="contact_email">Contact Email</label>
+            <input type="email" id="contact_email" class="form-control" formControlName="contact_email" placeholder="Enter contact email">
+            <div *ngIf="storeForm.get('contact_email')?.touched && storeForm.get('contact_email')?.errors?.['email']" class="form-error">
+              Please enter a valid email address
+            </div>
+          </div>
+          
+          <div class="form-group half-width">
+            <label for="contact_phone">Contact Phone</label>
+            <input type="tel" id="contact_phone" class="form-control" formControlName="contact_phone" placeholder="Enter contact phone number">
+            <div *ngIf="storeForm.get('contact_phone')?.touched && storeForm.get('contact_phone')?.errors?.['pattern']" class="form-error">
+              Please enter a valid phone number
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="form-section">
+        <h3>Store Image</h3>
+        
+        <div class="form-group">
+          <label for="store_image">Store Logo/Image</label>
+          <div class="file-upload">
+            <input type="file" id="store_image" class="file-input" (change)="onFileChange($event)" accept="image/*">
+            <label for="store_image" class="file-label">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              Choose File
+            </label>
+            <span class="file-name">{{ selectedImage?.name || 'No file chosen' }}</span>
+          </div>
+          
+          <div *ngIf="imagePreview" class="image-preview">
+            <img [src]="imagePreview" alt="Store image preview">
+          </div>
+          
+          <div *ngIf="uploading" class="uploading-indicator">
+            <div class="spinner small"></div>
+            <span>Uploading image...</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="form-section">
+        <h3>Owner Assignment</h3>
+        
+        <div class="form-group">
+          <label for="userSearch">Search User *</label>
+          <div class="search-container">
+            <input type="text" id="userSearch" class="form-control" formControlName="userSearch" 
+                   placeholder="Search by username or name">
+            <button type="button" class="clear-search" *ngIf="storeForm.get('userSearch')?.value" (click)="clearSearch()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+          
+          <div *ngIf="searchLoading" class="search-loading">
+            <div class="spinner small"></div>
+            <span>Searching users...</span>
+          </div>
+          
+          <div class="user-search-results" *ngIf="userSearchResults.length > 0">
+            <div class="user-search-result" *ngFor="let user of userSearchResults" (click)="selectUser(user)">
+              <div class="user-info">
+                <span class="username">{{ user.username }}</span>
+                <span class="name" *ngIf="user.first_name">{{ user.first_name }} {{ user.last_name }}</span>
+              </div>
+              <div class="user-role">
+                <span class="role-badge" [ngClass]="user.role">{{ user.role }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <input type="hidden" formControlName="owner">
+          <div *ngIf="storeForm.get('owner')?.touched && storeForm.get('owner')?.errors?.['required']" class="form-error">
+            Store owner is required
+          </div>
+        </div>
+      </div>
+      
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" routerLink="/admin/stores">Cancel</button>
+        <button type="submit" class="btn btn-primary" [disabled]="storeForm.invalid || loading || uploading">
+          Create Store
+        </button>
+      </div>
+    </form>
+  </div>
+</div> 

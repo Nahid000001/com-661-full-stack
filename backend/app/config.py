@@ -10,9 +10,10 @@ class Config:
     MONGO_URI = os.getenv("MONGO_URI")
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=5)
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
     JWT_TOKEN_LOCATION = ["headers"]
     JWT_BLOCKLIST_ENABLED = True
-    JWT_BLOCKLIST_TOKEN_CHECKS = ["access"]
+    JWT_BLOCKLIST_TOKEN_CHECKS = ["access", "refresh"]
     
     # Redis configuration - used for rate limiting and JWT token blocklisting
     # Can be set to "memory://" if Redis is not available or needed in development

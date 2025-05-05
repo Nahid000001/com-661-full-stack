@@ -1,17 +1,27 @@
 export interface Store {
-  _id: string;
+  _id?: string;
   company_name: string;
   title: string;
   description: string;
   location: string;
-  owner: string;
   work_type: string;
-  is_remote: boolean;
+  contact_email?: string;
+  contact_phone?: string;
+  store_category?: string;
+  image?: string;
+  branches?: string[];
+  views?: number;
+  reviews?: any[];
+  owner?: string;
+  managers?: string[];
+  created_at?: string;
+  updated_at?: string;
   average_rating?: number;
   review_count?: number;
-  views?: number;
-  created_at: string;
-  updated_at: string;
+  can_edit?: boolean;
+  can_delete?: boolean;
+  is_owner?: boolean;
+  is_admin?: boolean;
 }
 
 export interface StoreListResponse {
@@ -23,15 +33,31 @@ export interface StoreListResponse {
 }
 
 export interface StoreCreateResponse {
-  store: Store;
   message: string;
+  store_id: string;
+  branch_id: string;
+  owner?: string;
+  store?: Store;
 }
 
 export interface StoreUpdateResponse {
-  store: Store;
   message: string;
+  store?: Store;
 }
 
 export interface StoreDeleteResponse {
   message: string;
+}
+
+export interface StoreOwnerAssignment {
+  owner: string;  // Username of the new owner
+}
+
+export interface StoreManagerAssignment {
+  manager: string;  // Username of the manager to add
+}
+
+export interface StoreStaff {
+  owner: string;
+  managers: string[];
 } 

@@ -1,25 +1,77 @@
 <!-- src/app/components/health-check/health-check.component.html -->
 <div class="health-check-container">
-  <div *ngIf="status === 'loading'" class="status loading">
-    <div class="spinner"></div>
-    <span>Checking API connection...</span>
+  <h1>System Diagnostics</h1>
+  
+  <div class="health-status-card">
+    <h2>Backend API Status</h2>
+    <div *ngIf="status === 'loading'" class="status loading">
+      <div class="spinner"></div>
+      <span>Checking API connection...</span>
+    </div>
+    
+    <div *ngIf="status === 'connected'" class="status connected">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      </svg>
+      <span>Connected to API at {{ apiUrl }}</span>
+      <div class="details">
+        <p>Response time: {{ latency }}ms</p>
+        <p>Backend version: {{ backendVersion }}</p>
+        <p>Last checked: {{ lastCheckedTime | date:'medium' }}</p>
+      </div>
+    </div>
+    
+    <div *ngIf="status === 'error'" class="status error">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span>Failed to connect to API</span>
+      <div class="error-details">
+        <p *ngIf="networkIssue" class="error-highlight">Network or CORS Issue Detected</p>
+        <p>{{ detailedError }}</p>
+        <p>Last attempt: {{ lastCheckedTime | date:'medium' }}</p>
+      </div>
+      <button (click)="retry()" class="retry-btn primary">Retry Connection</button>
+      <button (click)="checkStoreFunctionality()" class="test-btn secondary">Test Store API</button>
+    </div>
   </div>
   
-  <div *ngIf="status === 'connected'" class="status connected">
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-      <polyline points="22 4 12 14.01 9 11.01"></polyline>
-    </svg>
-    <span>Connected to API at {{ apiUrl }}</span>
+  <div class="health-status-card">
+    <h2>Authentication Status</h2>
+    <div class="auth-status" [ngClass]="{'auth-success': authStatus?.isLoggedIn, 'auth-error': !authStatus?.isLoggedIn}">
+      <div class="auth-icon">
+        <svg *ngIf="authStatus?.isLoggedIn" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        <svg *ngIf="!authStatus?.isLoggedIn" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+          <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+          <line x1="6" y1="1" x2="6" y2="4"></line>
+          <line x1="10" y1="1" x2="10" y2="4"></line>
+          <line x1="14" y1="1" x2="14" y2="4"></line>
+        </svg>
+      </div>
+      <div class="auth-details">
+        <p>Status: {{ authStatus?.isLoggedIn ? 'Authenticated' : 'Not Authenticated' }}</p>
+        <p *ngIf="authStatus?.isLoggedIn">Username: {{ authStatus?.username }}</p>
+        <p *ngIf="authStatus?.isLoggedIn">User Role: {{ authStatus?.role }}</p>
+        <p *ngIf="authStatus?.tokenExpired" class="error-highlight">Token has expired</p>
+      </div>
+    </div>
   </div>
   
-  <div *ngIf="status === 'error'" class="status error">
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="10"></circle>
-      <line x1="12" y1="8" x2="12" y2="12"></line>
-      <line x1="12" y1="16" x2="12.01" y2="16"></line>
-    </svg>
-    <span>Failed to connect to API</span>
-    <button (click)="retry()" class="retry-btn">Retry</button>
+  <div class="diagnostic-info">
+    <h2>Environment Information</h2>
+    <p>API URL: {{ apiUrl }}</p>
+    <p>Frontend Environment: {{ environment.production ? 'Production' : 'Development' }}</p>
+  </div>
+  
+  <div class="actions">
+    <button routerLink="/" class="btn secondary">Back to Home</button>
+    <button (click)="retry()" class="btn primary">Refresh Status</button>
   </div>
 </div> 

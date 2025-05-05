@@ -158,4 +158,53 @@
       }
     }
   }
+}
+
+.error-actions {
+  margin-top: 10px;
+  font-size: 0.9em;
+  
+  p {
+    margin: 0;
+  }
+  
+  a {
+    color: #721c24;
+    text-decoration: underline;
+    font-weight: bold;
+    
+    &:hover {
+      color: #530f15;
+    }
+  }
+  
+  .troubleshooting-steps {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #f8d7da;
+    border-radius: 4px;
+    
+    h4 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 1em;
+      font-weight: bold;
+    }
+    
+    ol {
+      margin: 0;
+      padding-left: 20px;
+    }
+    
+    li {
+      margin-bottom: 5px;
+    }
+    
+    code {
+      background-color: #f1dede;
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-family: monospace;
+    }
+  }
 } 

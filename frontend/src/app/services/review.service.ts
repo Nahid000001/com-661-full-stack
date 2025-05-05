@@ -1,16 +1,21 @@
 // src/app/services/review.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
+import { Observable, throwError, of } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { Review } from '../models/review.model';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, shareReplay, tap, timeout } from 'rxjs/operators';
 import { ErrorService } from './error.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ReviewService {
+  // Add cache for latest reviews
+  private latestReviewsCache: { [key: string]: { data: Review[], timestamp: number } } = {};
+  // Cache timeout in ms (5 minutes)
+  private cacheDuration = 5 * 60 * 1000;
+  
   constructor(
     private http: HttpClient,
     private errorService: ErrorService
@@ -20,6 +25,7 @@ export class ReviewService {
     return this.http.get<{ reviews: Review[], total: number, totalPages?: number, pageSize?: number }>(
       `${environment.apiUrl}/stores/${storeId}/reviews?page=${page}&limit=${limit}`
     ).pipe(
+      timeout(10000), // Add timeout
       map(response => ({
         ...response,
         pageSize: limit,
@@ -34,15 +40,37 @@ export class ReviewService {
   }
 
   getLatestReviews(limit: number = 3): Observable<Review[]> {
+    const cacheKey = `latest_${limit}`;
+    const now = Date.now();
+    
+    // Check cache first
+    if (this.latestReviewsCache[cacheKey] && 
+        (now - this.latestReviewsCache[cacheKey].timestamp) < this.cacheDuration) {
+      console.log('Returning latest reviews from cache');
+      return of(this.latestReviewsCache[cacheKey].data);
+    }
+    
     return this.http.get<{ reviews: Review[] }>(
       `${environment.apiUrl}/reviews/latest?limit=${limit}`
     ).pipe(
+      timeout(8000), // Add timeout
       map(response => response.reviews || []),
+      tap(reviews => {
+        // Save to cache
+        if (reviews) {
+          this.latestReviewsCache[cacheKey] = {
+            data: reviews,
+            timestamp: now
+          };
+        }
+      }),
       catchError((error: HttpErrorResponse) => {
         console.error('Error fetching latest reviews:', error);
         // Don't show error message for this as it's not critical
-        return throwError(() => error);
-      })
+        return of([]);
+      }),
+      // Share the same observable result to all subscribers
+      shareReplay(1)
     );
   }
 
@@ -181,5 +209,9 @@ export class ReviewService {
       errorMessage = `Error Code: ${error.status}\nMessage: ${error.message}`;
     }
     return throwError(() => new Error(errorMessage));
+  }
+
+  clearCache(): void {
+    this.latestReviewsCache = {};
   }
 }

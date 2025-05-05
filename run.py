@@ -18,9 +18,17 @@ import sys
 from subprocess import Popen
 
 def run_backend():
-    from backend.app import create_app
-    app = create_app()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    try:
+        from backend.app import create_app
+        app = create_app()
+        app.run(debug=True, host='0.0.0.0', port=5000)
+    except ImportError:
+        # If import fails, try adding the current directory to sys.path
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        sys.path.insert(0, current_dir)
+        from backend.app import create_app
+        app = create_app()
+        app.run(debug=True, host='0.0.0.0', port=5000)
 
 if __name__ == "__main__":
     # Run the Flask backend
