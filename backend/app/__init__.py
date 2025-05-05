@@ -7,12 +7,14 @@ from flasgger import Swagger
 from flask_cors import CORS
 import os
 import redis
+import warnings
 
 from app.config import config
 from app.utils.error_handler import register_error_handlers
 
 mongo = PyMongo()
 jwt = JWTManager()
+# Initialize limiter without storage configuration yet
 limiter = Limiter(key_func=get_remote_address)
 swagger = Swagger()
 
@@ -44,14 +46,24 @@ def create_app(config_name='default'):
     
     # Configure Redis connection
     global redis_client
-    redis_url = app.config.get('REDIS_URL', 'redis://localhost:6379/0')
+    redis_url = app.config.get('RATELIMIT_STORAGE_URL', 'redis://localhost:6379/0')
+    redis_available = False
+    
     try:
         redis_client = redis.from_url(redis_url)
         # Test the connection
         redis_client.ping()
         print("Redis connection successful")
-    except redis.exceptions.ConnectionError:
+        # Configure limiter to use Redis
+        app.config['RATELIMIT_STORAGE_URI'] = redis_url
+        redis_available = True
+    except (redis.exceptions.ConnectionError, redis.exceptions.RedisError):
         print("Warning: Redis server is not available. Some features like token blocklisting will be disabled.")
+        warnings.warn(
+            "Redis is not available. Using in-memory storage for rate limiting, which is not suitable for production. "
+            "Install Redis or configure another storage backend for production use. "
+            "See: https://flask-limiter.readthedocs.io#configuring-a-storage-backend"
+        )
         # Create a mock Redis client that won't cause errors when methods are called
         class MockRedis:
             def get(self, key):
@@ -60,11 +72,22 @@ def create_app(config_name='default'):
                 pass
             def delete(self, *args, **kwargs):
                 pass
+            def ping(self):
+                return False
         redis_client = MockRedis()
     
     # Initialize extensions
     mongo.init_app(app)
     jwt.init_app(app)
+    
+    # Configure limiter with appropriate storage
+    if redis_available:
+        app.config['RATELIMIT_STORAGE_URI'] = redis_url
+    else:
+        # If Redis is not available, explicitly set in-memory storage
+        app.config['RATELIMIT_STORAGE_URI'] = "memory://"
+    
+    # Now initialize limiter with the storage configuration
     limiter.init_app(app)
     swagger.init_app(app)
     
@@ -139,7 +162,13 @@ def create_app(config_name='default'):
     # Health check endpoint
     @app.route('/health')
     def health_check():
-        return jsonify({"status": "healthy", "message": "API is running"}), 200
+        status = "healthy"
+        details = {
+            "api": "running",
+            "mongo": "connected",
+            "redis": "connected" if redis_available else "disconnected"
+        }
+        return jsonify({"status": status, "details": details}), 200
 
     from app.routes import register_blueprints
     register_blueprints(app)
