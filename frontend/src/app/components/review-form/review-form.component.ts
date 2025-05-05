@@ -50,6 +50,8 @@ export class ReviewFormComponent implements OnInit {
 
   onSubmit() {
     this.submitted = true;
+    this.error = '';
+    this.success = '';
     
     // Stop here if form is invalid
     if (this.reviewForm.invalid) {
@@ -58,35 +60,51 @@ export class ReviewFormComponent implements OnInit {
     
     this.loading = true;
     
-    const reviewData = {
-      store_id: this.storeId,
-      ...this.reviewForm.value
+    // Ensure reviewData matches the expected type
+    const reviewData = this.reviewForm.value;
+    
+    // Add a retry attempt counter
+    let retryCount = 0;
+    const maxRetries = 2;
+    
+    const submitReview = () => {
+      this.reviewService.addReview(this.storeId, reviewData)
+        .subscribe({
+          next: (response) => {
+            this.loading = false;
+            this.success = 'Review submitted successfully!';
+            this.reviewForm.reset();
+            this.submitted = false;
+            this.reviewAdded.emit(response);
+            
+            // Clear success message after 3 seconds
+            setTimeout(() => {
+              this.success = '';
+            }, 3000);
+          },
+          error: (error) => {
+            console.error('Review submission error:', error);
+            
+            if (retryCount < maxRetries) {
+              retryCount++;
+              console.log(`Retrying review submission (${retryCount}/${maxRetries})...`);
+              // Wait 1 second before retrying
+              setTimeout(() => submitReview(), 1000);
+              return;
+            }
+            
+            this.loading = false;
+            this.error = error.error?.message || 'Error submitting review. Please try again.';
+            
+            // Clear error message after 5 seconds
+            setTimeout(() => {
+              this.error = '';
+            }, 5000);
+          }
+        });
     };
     
-    this.reviewService.addReview(this.storeId, this.reviewForm.value)
-      .subscribe({
-        next: (response) => {
-          this.loading = false;
-          this.success = 'Review submitted successfully!';
-          this.reviewForm.reset();
-          this.submitted = false;
-          this.reviewAdded.emit(response);
-          
-          // Clear success message after 3 seconds
-          setTimeout(() => {
-            this.success = '';
-          }, 3000);
-        },
-        error: (error) => {
-          this.loading = false;
-          this.error = error.error?.message || 'Error submitting review';
-          
-          // Clear error message after 5 seconds
-          setTimeout(() => {
-            this.error = '';
-          }, 5000);
-        }
-      });
+    submitReview();
   }
   
   // Star rating methods

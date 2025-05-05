@@ -322,3 +322,40 @@ def get_user_reviews_with_replies():
         
     except Exception as e:
         raise ApiError(str(e))
+
+@reviews_bp.route('/admin/all', methods=['GET'])
+@jwt_required()
+def get_all_reviews_admin():
+    """Admin endpoint to get all reviews across all stores."""
+    try:
+        # Check admin role
+        claims = get_jwt()
+        user_role = claims.get("role", "customer")
+        
+        if user_role != "admin":
+            raise ForbiddenError("Admin access required")
+        
+        # Get all stores
+        stores = list(mongo.db.stores.find({}, {"company_name": 1, "reviews": 1}))
+        
+        all_reviews = []
+        for store_doc in stores:
+            store_id = str(store_doc.get("_id"))
+            store_name = store_doc.get("company_name", "Unknown Store")
+            
+            # Add store info to all reviews from this store
+            for review_obj in store_doc.get("reviews", []):
+                review_obj["_id"] = review_obj.get("review_id", "")
+                review_obj["store_id"] = store_id
+                review_obj["store_name"] = store_name
+                all_reviews.append(review_obj)
+        
+        # Sort by date (newest first)
+        all_reviews.sort(key=lambda x: x.get("created_at", datetime.min), reverse=True)
+        
+        return jsonify({"reviews": all_reviews}), 200
+        
+    except ForbiddenError as e:
+        raise e
+    except Exception as e:
+        raise ApiError(str(e))

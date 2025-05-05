@@ -77,6 +77,10 @@ export class ReviewService {
   addReview(storeId: string, review: Omit<Review, '_id' | 'created_at' | 'updated_at'>): Observable<Review> {
     return this.http.post<Review>(`${environment.apiUrl}/stores/${storeId}/reviews/add`, review)
       .pipe(
+        tap(() => {
+          // Clear any cached reviews for this store
+          this.clearCache();
+        }),
         catchError((error: HttpErrorResponse) => {
           console.error('Error adding review:', error);
           this.errorService.setError(error.error?.message || 'Failed to add review');
@@ -88,6 +92,10 @@ export class ReviewService {
   editReview(storeId: string, reviewId: string, review: Partial<Review>): Observable<Review> {
     return this.http.patch<any>(`${environment.apiUrl}/stores/${storeId}/reviews/${reviewId}`, review)
       .pipe(
+        tap(() => {
+          // Clear any cached reviews for this store
+          this.clearCache();
+        }),
         map(response => response.review || {}),
         catchError((error: HttpErrorResponse) => {
           console.error('Error editing review:', error);
@@ -100,6 +108,10 @@ export class ReviewService {
   deleteReview(storeId: string, reviewId: string): Observable<any> {
     return this.http.delete(`${environment.apiUrl}/stores/${storeId}/reviews/${reviewId}`)
       .pipe(
+        tap(() => {
+          // Clear any cached reviews for this store
+          this.clearCache();
+        }),
         catchError((error: HttpErrorResponse) => {
           console.error('Error deleting review:', error);
           this.errorService.setError(error.error?.message || 'Failed to delete review');
@@ -220,6 +232,7 @@ export class ReviewService {
   }
 
   clearCache(): void {
+    console.log('Clearing review cache');
     this.latestReviewsCache = {};
   }
 }

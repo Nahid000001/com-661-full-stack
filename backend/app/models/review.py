@@ -64,15 +64,18 @@ def add_review(store_id, user, rating, comment):
             return False, "Store not found"
         
         # Check if user has already reviewed this store
-        reviews = store_obj.get("reviews", [])
-        for review in reviews:
-            if review.get("user") == user:
-                return False, "You have already reviewed this store. Please edit your existing review."
+        review_exists = mongo.db.stores.find_one({
+            "_id": ObjectId(store_id),
+            "reviews.user": user
+        })
         
-        # Create new review
-        review_id = ObjectId()
+        if review_exists:
+            return False, "You have already reviewed this store. Please edit your existing review."
+        
+        # Create new review with a unique ID
+        review_id = str(ObjectId())
         new_review = {
-            "review_id": str(review_id),
+            "review_id": review_id,
             "user": user,
             "rating": rating,
             "comment": comment,
@@ -80,59 +83,67 @@ def add_review(store_id, user, rating, comment):
             "replies": []
         }
         
-        # Add review to store
+        # Use an atomic update to add the review
         result = mongo.db.stores.update_one(
             {"_id": ObjectId(store_id)},
             {"$push": {"reviews": new_review}}
         )
         
         if result.modified_count == 0:
-            return False, "Failed to add review"
+            return False, "Failed to add review. The store may not exist."
         
-        # Update store's average rating
+        # Update store's average rating using a separate function call
         update_store_rating(store_id)
         
         return True, "Review added successfully"
     except Exception as e:
-        return False, str(e)
+        print(f"Error adding review: {str(e)}")
+        return False, f"An error occurred: {str(e)}"
 
 def edit_review(store_id, review_id, user, new_comment=None, new_rating=None):
     """Edit a review."""
     try:
-        # Find the store
-        store_obj = mongo.db.stores.find_one({"_id": ObjectId(store_id)})
-        if not store_obj:
-            return False, "Store not found"
+        # Check if user is authorized to edit this review
+        review_to_edit = mongo.db.stores.find_one(
+            {
+                "_id": ObjectId(store_id),
+                "reviews.review_id": review_id,
+                "reviews.user": user
+            },
+            {"reviews.$": 1}
+        )
         
-        # Find the review
-        reviews = store_obj.get("reviews", [])
-        review_index = next((i for i, rev in enumerate(reviews) if rev.get("review_id") == review_id), -1)
-        
-        if review_index == -1:
-            return False, "Review not found"
-        
-        # Check if user is the review owner
-        if reviews[review_index].get("user") != user:
-            return False, "Unauthorized: Only the review author can edit"
+        if not review_to_edit:
+            return False, "Review not found or you are not authorized to edit it"
         
         # Update fields
         update_fields = {}
         if new_comment is not None and new_comment.strip():
-            update_fields[f"reviews.{review_index}.comment"] = new_comment
+            update_fields["reviews.$.comment"] = new_comment
         
         if new_rating is not None:
-            update_fields[f"reviews.{review_index}.rating"] = new_rating
+            update_fields["reviews.$.rating"] = new_rating
         
-        update_fields[f"reviews.{review_index}.updated_at"] = datetime.utcnow()
+        update_fields["reviews.$.updated_at"] = datetime.utcnow()
         
-        # Update the review
+        if not update_fields:
+            return False, "No changes provided for update"
+        
+        # Update the review with atomic operation
         result = mongo.db.stores.update_one(
-            {"_id": ObjectId(store_id)},
+            {
+                "_id": ObjectId(store_id),
+                "reviews.review_id": review_id,
+                "reviews.user": user  # Ensure the user owns the review
+            },
             {"$set": update_fields}
         )
         
+        if result.matched_count == 0:
+            return False, "Review not found or you are not authorized to edit it"
+            
         if result.modified_count == 0:
-            return False, "No changes made"
+            return False, "No changes were made"
         
         # Update store's average rating if rating changed
         if new_rating is not None:
@@ -140,7 +151,8 @@ def edit_review(store_id, review_id, user, new_comment=None, new_rating=None):
         
         return True, "Review updated successfully"
     except Exception as e:
-        return False, str(e)
+        print(f"Error editing review: {str(e)}")
+        return False, f"An error occurred: {str(e)}"
 
 def delete_review(store_id, review_id, user, is_admin=False):
     """Delete a review."""
@@ -335,29 +347,37 @@ def get_user_reviews_with_replies(user_id):
     return result
 
 def update_store_rating(store_id):
-    """Update store's average rating based on all reviews."""
+    """Update a store's average rating based on all reviews."""
     try:
         store_obj = mongo.db.stores.find_one({"_id": ObjectId(store_id)})
         if not store_obj:
-            return
+            return False
         
         reviews = store_obj.get("reviews", [])
         if not reviews:
             # If no reviews, set average rating to 0
             mongo.db.stores.update_one(
                 {"_id": ObjectId(store_id)},
-                {"$set": {"average_rating": 0}}
+                {"$set": {"average_rating": 0, "review_count": 0}}
             )
-            return
+            return True
         
         # Calculate average rating
         total_rating = sum(review.get("rating", 0) for review in reviews)
-        average_rating = total_rating / len(reviews)
+        average_rating = round(total_rating / len(reviews), 1)  # Round to 1 decimal place
         
-        # Update store with new average rating
-        mongo.db.stores.update_one(
+        # Update store with atomic operation
+        result = mongo.db.stores.update_one(
             {"_id": ObjectId(store_id)},
-            {"$set": {"average_rating": round(average_rating, 1)}}
+            {
+                "$set": {
+                    "average_rating": average_rating,
+                    "review_count": len(reviews)
+                }
+            }
         )
-    except Exception:
-        pass
+        
+        return result.modified_count > 0
+    except Exception as e:
+        print(f"Error updating store rating: {str(e)}")
+        return False

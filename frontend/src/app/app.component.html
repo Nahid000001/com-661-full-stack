@@ -3,11 +3,11 @@
   <!-- Navigation Bar -->
   <app-navigation></app-navigation>
   
-  <!-- Admin Toolbar - visible when in admin view and user is admin -->
+  <!-- Admin Toolbar - visible ONLY when in admin view mode AND user is admin -->
   <div *ngIf="isAdmin && isAdminViewMode" class="admin-toolbar">
     <div class="container">
       <div class="admin-toolbar-content">
-        <span class="admin-label">Admin Mode</span>
+        <span class="admin-label">ADMIN MODE</span>
         <div class="admin-actions">
           <a routerLink="/admin" class="admin-action">Dashboard</a>
           <a routerLink="/admin/users" class="admin-action">Manage Users</a>
@@ -55,7 +55,7 @@
   </main>
   
   <!-- Admin Tools (only visible for admin route) -->
-  <div *ngIf="isAdminRoute" class="admin-tools">
+  <div *ngIf="isAdminRoute && isAdmin" class="admin-tools">
     <div class="container">
       <div class="admin-panel">
         <h3 class="admin-panel-title">API Status Panel</h3>

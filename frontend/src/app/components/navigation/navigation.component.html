@@ -24,31 +24,31 @@
         <li class="nav-item" *ngIf="isStoreOwner || (isAdmin && isAdminViewMode)">
           <a class="nav-link" routerLink="/stores/add" routerLinkActive="active">Add Store</a>
         </li>
-        <!-- Only show Admin link in Admin View mode -->
+        <!-- Only show Admin link for admins in Admin View mode -->
         <li class="nav-item" *ngIf="isAdmin && isAdminViewMode">
           <a class="nav-link" routerLink="/admin" routerLinkActive="active">Admin</a>
         </li>
       </ul>
       
-      <ul class="navbar-nav auth-nav">
+      <ul class="navbar-nav ml-auto">
         <ng-container *ngIf="!isLoggedIn">
           <li class="nav-item">
-            <a class="nav-link auth-link" routerLink="/login" routerLinkActive="active">Login</a>
+            <a class="nav-link" routerLink="/login" routerLinkActive="active">Login</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link auth-link auth-accent" routerLink="/register" routerLinkActive="active">Register</a>
+            <a class="nav-link btn-signup" routerLink="/register" routerLinkActive="active">Sign Up</a>
           </li>
         </ng-container>
         
         <ng-container *ngIf="isLoggedIn">
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" (click)="toggleUserDropdown($event)" [attr.aria-expanded]="isUserDropdownOpen">
-              <div class="user-avatar">{{ getUserInitial() }}</div>
+          <li class="nav-item dropdown" (click)="$event.stopPropagation()">
+            <a class="nav-link dropdown-toggle" href="#" (click)="toggleUserDropdown($event)">
+              <div class="user-avatar">
+                <span class="user-initial">{{ getUserInitial() }}</span>
+              </div>
               <span class="username">{{ currentUser?.username }}</span>
-              <svg class="dropdown-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
             </a>
+            
             <div class="dropdown-menu" [class.show]="isUserDropdownOpen">
               <a class="dropdown-item" routerLink="/profile">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -65,7 +65,7 @@
                 Review Responses
               </a>
               
-              <!-- Admin View Mode Toggle for admin users -->
+              <!-- Admin View Mode Toggle for admin users only -->
               <ng-container *ngIf="isAdmin">
                 <div class="dropdown-divider"></div>
                 <div class="view-mode-toggle-container">
@@ -92,7 +92,7 @@
               <!-- Admin Options - only for admin users in Admin View mode -->
               <ng-container *ngIf="isAdmin && isAdminViewMode">
                 <div class="dropdown-divider"></div>
-                <h6 class="dropdown-header">Admin Controls</h6>
+                <h6 class="dropdown-header">Admin Tools</h6>
                 <a class="dropdown-item" routerLink="/admin/users">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -113,7 +113,7 @@
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                   </svg>
-                  Review Responses
+                  Manage Reviews
                 </a>
                 <a class="dropdown-item" routerLink="/admin">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

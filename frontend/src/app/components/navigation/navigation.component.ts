@@ -20,7 +20,7 @@ export class NavigationComponent implements OnInit, OnDestroy {
   isStoreOwner = false;
   isMobileMenuOpen = false;
   isUserDropdownOpen = false;
-  isAdminViewMode = true; // Default to admin view
+  isAdminViewMode = false; // Default to user view
   
   private viewModeSubscription!: Subscription;
 
@@ -37,9 +37,16 @@ export class NavigationComponent implements OnInit, OnDestroy {
       if (user && user.token) {
         this.isAdmin = this.authService.hasRole('admin');
         this.isStoreOwner = this.authService.hasRole('store_owner');
+        
+        // Only admin users should have access to admin view mode
+        if (!this.isAdmin && this.viewModeService.isAdminMode()) {
+          this.viewModeService.setViewMode(ViewMode.User);
+        }
       } else {
         this.isAdmin = false;
         this.isStoreOwner = false;
+        // Always set to user mode for non-logged in users
+        this.viewModeService.setViewMode(ViewMode.User);
       }
     });
     
@@ -49,28 +56,25 @@ export class NavigationComponent implements OnInit, OnDestroy {
     });
   }
 
-  logout() {
+  logout(): void {
+    // Always set to user view mode when logging out
+    this.viewModeService.setViewMode(ViewMode.User);
     this.authService.logout();
-    this.isUserDropdownOpen = false;
   }
 
-  toggleMobileMenu() {
+  toggleMobileMenu(): void {
     this.isMobileMenuOpen = !this.isMobileMenuOpen;
-    
-    // Close user dropdown if open
-    if (this.isMobileMenuOpen) {
-      this.isUserDropdownOpen = false;
-    }
   }
 
-  toggleUserDropdown(event: Event) {
+  toggleUserDropdown(event: Event): void {
     event.preventDefault();
     event.stopPropagation();
     this.isUserDropdownOpen = !this.isUserDropdownOpen;
   }
 
-  getUserInitial(): string {
-    return this.currentUser?.username ? this.currentUser.username.charAt(0).toUpperCase() : 'U';
+  @HostListener('document:click')
+  clickOutside() {
+    this.isUserDropdownOpen = false;
   }
 
   // Toggle between admin and user view mode
@@ -80,6 +84,10 @@ export class NavigationComponent implements OnInit, OnDestroy {
       const newMode = this.isAdminViewMode ? ViewMode.User : ViewMode.Admin;
       this.viewModeService.setViewMode(newMode);
     }
+  }
+
+  getUserInitial(): string {
+    return this.currentUser?.username ? this.currentUser.username.charAt(0).toUpperCase() : 'U';
   }
 
   // Close dropdowns when clicking outside

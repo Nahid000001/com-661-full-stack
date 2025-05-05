@@ -11,7 +11,7 @@ export enum ViewMode {
 })
 export class ViewModeService {
   // Use BehaviorSubject to maintain state across components
-  private viewModeSubject = new BehaviorSubject<ViewMode>(ViewMode.Admin);
+  private viewModeSubject = new BehaviorSubject<ViewMode>(ViewMode.User);
   
   constructor() {
     this.initializeViewMode();
@@ -24,10 +24,9 @@ export class ViewModeService {
     if (savedMode && Object.values(ViewMode).includes(savedMode as ViewMode)) {
       this.viewModeSubject.next(savedMode as ViewMode);
     } else {
-      // Default to Admin view for admin users
-      // The auth check will happen in components that use this service
-      this.viewModeSubject.next(ViewMode.Admin);
-      localStorage.setItem('viewMode', ViewMode.Admin);
+      // Default to User view for all users
+      this.viewModeSubject.next(ViewMode.User);
+      localStorage.setItem('viewMode', ViewMode.User);
     }
   }
   
