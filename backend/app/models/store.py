@@ -218,6 +218,26 @@ def update_store(store_id, update_data, owner, is_admin=False):
         return False, "No changes made"
     return True, "Store updated successfully"
 
+def update_store_by_id(store_id, update_data):
+    """Update a store by ID - Used by API routes."""
+    try:
+        store = mongo.db.stores.find_one({"_id": ObjectId(store_id)})
+        if not store:
+            return {"success": False, "message": "Store not found"}
+        
+        update_data["updated_at"] = get_current_time()
+        result = mongo.db.stores.update_one({"_id": ObjectId(store_id)}, {"$set": update_data})
+        
+        if result.modified_count == 0 and result.matched_count == 0:
+            return {"success": False, "message": "Store not found"}
+        elif result.modified_count == 0:
+            return {"success": True, "message": "No changes made to the store"}
+        
+        return {"success": True, "message": "Store updated successfully"}
+    except Exception as e:
+        print(f"Error updating store: {str(e)}")
+        return {"success": False, "message": f"Error updating store: {str(e)}"}
+
 def delete_store(store_id, owner, is_admin=False):
     """Delete a store."""
     
